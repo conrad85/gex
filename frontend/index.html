@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Zeeverse GEX — All Items</title>
+  <style>
+    body {
+      font-family: monospace;
+      background-color: #0e1117;
+      color: #d1d5db;
+      margin: 40px;
+    }
+    h1 {
+      color: #4ade80;
+      margin-bottom: 20px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      background-color: #1e293b;
+    }
+    th, td {
+      border: 1px solid #334155;
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background-color: #334155;
+      color: #facc15;
+      user-select: none;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .pool-address {
+      font-size: 0.8em;
+      color: #94a3b8;
+      display: block;
+    }
+    tr.selected {
+      background-color: #334155;
+      transition: background-color 0.3s;
+    }
+  </style>
+</head>
+<body>
+  <h1>Zeeverse GEX — All Items</h1>
+
+  <input id="search" placeholder="Filter by item name..." style="margin-bottom: 10px; width: 250px;" />
+
+  <div id="row-count" style="margin-bottom: 10px;"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th data-key="item_name">Item</th>
+        <th data-key="price_vee">Price (VEE)</th>
+        <th data-key="reserve_vee">Reserves VEE</th>
+        <th data-key="reserve_item">Reserves Item</th>
+        <th data-key="volume_24h_est">Volume 24h</th>
+        <th data-key="ts">Updated</th>
+        <th data-key="lp_share">My LP %</th>
+        <th data-key="user_item">My Items in LP</th>
+        <th data-key="user_vee">My VEE in LP</th>
+      </tr>
+    </thead>
+    <tbody id="market-body"></tbody>
+  </table>
+
+  <div id="last-updated" style="margin-top: 15px; color: #888;"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
