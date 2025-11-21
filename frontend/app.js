@@ -1,6 +1,6 @@
 // ===== CONFIG =====
 const WALLET = "0x2aEb84d9b061C850B1F3C8C5200BaE14270D49f0";
-const API_URL = `http://127.0.0.1:8000/api/market/${WALLET}`;
+const API_URL = `http://70.34.253.119:8000/api/market/${WALLET}`;
 
 // ===== STATE =====
 let rows = [];
