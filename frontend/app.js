@@ -43,7 +43,25 @@ async function loadMarketBase() {
     const data = await res.json();
     if (Array.isArray(data)) {
       baseRows = data;
-      rows = data;
+
+      // zachowujemy stare LP zanim nadpiszemy "rows"
+      const prevMap = new Map(
+        rows.map((r) => [String(r.pair_address).toLowerCase(), r])
+      );
+
+      rows = data.map((r) => {
+        const key = String(r.pair_address).toLowerCase();
+        const prev = prevMap.get(key) || {};
+
+        return {
+          ...r,
+          lp_balance: prev.lp_balance ?? 0,
+          lp_share: prev.lp_share ?? 0,
+          user_item: prev.user_item ?? 0,
+          user_vee: prev.user_vee ?? 0,
+        };
+      });
+
       applyFilterAndSort();
       updateUpdatedLabel();
     } else {
@@ -51,7 +69,6 @@ async function loadMarketBase() {
     }
   } catch (err) {
     console.error("Failed to load base market", err);
-    // zostawiamy poprzednie rows, żeby tabela nie znikała przy chwilowych błędach
   }
 }
 
@@ -209,6 +226,11 @@ function updateUpdatedLabel() {
 }
 
 // ===== INIT =====
-loadMarketBase().then(loadMarketWallet);
-setInterval(loadMarketBase, 60_000);
-setInterval(loadMarketWallet, 120_000);
+async function refreshAll() {
+  await loadMarketBase(); 
+  await loadMarketWallet();
+}
+
+refreshAll();
+setInterval(refreshAll, 60_000);
+
