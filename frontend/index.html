@@ -2,32 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Zeeverse GEX — All Items</title>
+  <title>Zeeverse GEX - All Items</title>
   <style>
     body {
       font-family: monospace;
-      background-color: #0e1117;
-      color: #d1d5db;
+      background-color: #f6f7fb;
+      color: #0f172a;
       margin: 40px;
     }
     h1 {
-      color: #4ade80;
+      color: #2563eb;
       margin-bottom: 20px;
     }
     table {
       border-collapse: collapse;
       width: 100%;
-      background-color: #1e293b;
+      background-color: #ffffff;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
     }
     th, td {
-      border: 1px solid #334155;
+      border: 1px solid #d9e2ec;
       padding: 8px 10px;
       text-align: left;
       vertical-align: top;
     }
     th {
-      background-color: #334155;
-      color: #facc15;
+      background-color: #edf2fb;
+      color: #0f172a;
       user-select: none;
       cursor: pointer;
       white-space: nowrap;
@@ -38,19 +39,33 @@
     }
     .pool-address {
       font-size: 0.8em;
-      color: #94a3b8;
+      color: #6b7280;
       display: block;
     }
     tr.selected {
-      background-color: #334155;
+      background-color: #eef2ff;
       transition: background-color 0.3s;
+    }
+    #search {
+      padding: 6px 10px;
+      border: 1px solid #d9e2ec;
+      border-radius: 8px;
+      background: #ffffff;
+      color: #0f172a;
+    }
+    #last-updated {
+      color: #6b7280;
     }
   </style>
 </head>
 <body>
-  <h1>Zeeverse GEX — All Items</h1>
+  <h1>Zeeverse GEX - All Items</h1>
 
-  <input id="search" placeholder="Filter by item name..." style="margin-bottom: 10px; width: 250px;" />
+  <input
+    id="search"
+    placeholder="Filter by item name..."
+    style="margin-bottom: 10px; width: 250px;"
+  />
 
   <div id="row-count" style="margin-bottom: 10px;"></div>
 
@@ -71,7 +86,7 @@
     <tbody id="market-body"></tbody>
   </table>
 
-  <div id="last-updated" style="margin-top: 15px; color: #888;"></div>
+  <div id="last-updated" style="margin-top: 15px;"></div>
 
   <script src="app.js"></script>
 </body>

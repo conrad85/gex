@@ -1,12 +1,12 @@
 :root{
-  --bg:#0e1117;
-  --card:#1e293b;
-  --border:#334155;
-  --text:#d1d5db;
-  --muted:#94a3b8;
-  --accent:#4ade80;
-  --warn:#facc15;
-  --hover:#0b1220;
+  --bg:#f6f7fb;
+  --card:#ffffff;
+  --border:#d9e2ec;
+  --text:#0f172a;
+  --muted:#6b7280;
+  --accent:#2563eb;
+  --warn:#b45309;
+  --hover:#eef2ff;
 }
 
 *{ box-sizing:border-box; }
@@ -69,12 +69,13 @@ h2{
   background:var(--card);
   border:1px solid var(--border);
   margin-bottom:24px;
+  box-shadow:0 8px 24px rgba(15,23,42,0.07);
 }
 
 thead th{
   padding:8px 10px;
   border-bottom:1px solid var(--border);
-  background:#111827;
+  background:#edf2fb;
   text-align:left;
   font-size:.9rem;
   user-select:none;
@@ -133,6 +134,7 @@ tbody tr:hover{
   border-radius:12px;
   background:var(--card);
   border:1px solid var(--border);
+  box-shadow:0 8px 24px rgba(15,23,42,0.07);
 }
 
 .calc-hint{
@@ -161,7 +163,7 @@ tbody tr:hover{
   padding:6px 8px;
   border-radius:8px;
   border:1px solid var(--border);
-  background:#020617;
+  background:#f9fafb;
   color:var(--text);
 }
 
@@ -169,14 +171,14 @@ tbody tr:hover{
   padding:8px 14px;
   border-radius:999px;
   border:1px solid var(--accent);
-  background:transparent;
+  background:rgba(37,99,235,0.08);
   color:var(--accent);
   cursor:pointer;
   font-size:.9rem;
 }
 
 .calculator button:hover{
-  background:rgba(74,222,128,0.1);
+  background:rgba(37,99,235,0.15);
 }
 
 .calc-output{
