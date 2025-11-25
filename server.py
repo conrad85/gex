@@ -84,7 +84,8 @@ LP_CACHE_TTL = 300  # seconds
 
 def query_latest():
     """
-    Pobiera ostatni snapshot każdej pary z gex_snapshots oraz wolumen 24h z trades_ronin.
+    Pobiera ostatni snapshot każdej pary z gex_snapshots
+    oraz wolumen 24h i 7 dni z trades_ronin.
     """
     conn = psycopg2.connect(**DB_PARAMS)
     cur = conn.cursor()
@@ -104,13 +105,22 @@ def query_latest():
         FROM gex_snapshots
         ORDER BY pair_address, ts DESC
     ),
-    vol AS (
+    vol24 AS (
         SELECT
             LOWER(pair_address) AS pair_lower,
             COALESCE(SUM(vee_amount), 0) AS volume_24h_vee,
             COUNT(*) AS trades_24h
         FROM trades_ronin
         WHERE ts >= NOW() - INTERVAL '24 hours'
+        GROUP BY LOWER(pair_address)
+    ),
+    vol7 AS (
+        SELECT
+            LOWER(pair_address) AS pair_lower,
+            COALESCE(SUM(vee_amount), 0) AS volume_7d_vee,
+            COUNT(*) AS trades_7d
+        FROM trades_ronin
+        WHERE ts >= NOW() - INTERVAL '7 days'
         GROUP BY LOWER(pair_address)
     )
     SELECT
@@ -122,11 +132,14 @@ def query_latest():
         l.vee_address,
         l.item_address,
         l.ts,
-        COALESCE(v.volume_24h_vee, 0) AS volume_24h_vee,
-        COALESCE(v.volume_24h_vee, 0) AS volume_24h_est,
-        COALESCE(v.trades_24h, 0) AS volume_24h_trades
+        COALESCE(v24.volume_24h_vee, 0) AS volume_24h_vee,
+        COALESCE(v24.volume_24h_vee, 0) AS volume_24h_est,
+        COALESCE(v24.trades_24h, 0)       AS volume_24h_trades,
+        COALESCE(v7.volume_7d_vee, 0)     AS volume_7d_vee,
+        COALESCE(v7.trades_7d, 0)         AS volume_7d_trades
     FROM latest l
-    LEFT JOIN vol v ON v.pair_lower = l.pair_lower;
+    LEFT JOIN vol24 v24 ON v24.pair_lower = l.pair_lower
+    LEFT JOIN vol7  v7  ON v7.pair_lower  = l.pair_lower;
     """
 
     cur.execute(query)
@@ -146,6 +159,8 @@ def query_latest():
         "volume_24h_vee",
         "volume_24h_est",
         "volume_24h_trades",
+        "volume_7d_vee",
+        "volume_7d_trades",
     ]
 
     return [dict(zip(columns, row)) for row in rows]

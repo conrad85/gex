@@ -15,7 +15,10 @@ let rows = [];
 let filteredRows = [];
 let baseRows = [];
 
-const nf2 = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const nf2 = new Intl.NumberFormat("en-US", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 const nf0 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 const dateFmt = new Intl.DateTimeFormat(undefined, {
   year: "2-digit",
@@ -116,6 +119,11 @@ function renderTable() {
   for (const row of filteredRows) {
     const tr = document.createElement("tr");
 
+    // podświetl LP, jeśli coś masz w tej puli
+    if ((row.lp_share || 0) > 0) {
+      tr.classList.add("has-lp");
+    }
+
     // item
     const tdItem = document.createElement("td");
     tdItem.innerHTML = `
@@ -128,6 +136,7 @@ function renderTable() {
     tr.appendChild(numCell(row.reserve_vee));
     tr.appendChild(numCell(row.reserve_item));
     tr.appendChild(numCell(row.volume_24h_est));
+    tr.appendChild(numCell(row.volume_7d_vee));
 
     const tdTs = document.createElement("td");
     tdTs.textContent = row.ts ? formatTs(row.ts) : "";
@@ -174,7 +183,9 @@ document.addEventListener("click", (ev) => {
     state.sortDir = "asc";
   }
 
-  document.querySelectorAll("th[data-key]").forEach((el) => el.classList.remove("sorted"));
+  document
+    .querySelectorAll("th[data-key]")
+    .forEach((el) => el.classList.remove("sorted"));
   th.classList.add("sorted");
 
   applyFilterAndSort();
