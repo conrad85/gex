@@ -7,6 +7,7 @@ import psycopg2
 from psycopg2.extras import execute_values
 from dotenv import load_dotenv
 from web3 import Web3
+from web3.middleware import ExtraDataToPOAMiddleware  # <– DODAJ TEN IMPORT
 
 load_dotenv()
 
@@ -19,8 +20,24 @@ DB_PARAMS = {
     "password": os.getenv("DB_PASS", "gex_pass"),
 }
 
-# === KONFIGURACJA BLOCKCHAIN ===
-RONIN_RPC = os.getenv("RONIN_RPC", "wss://ronin.drpc.org")
+# === KONFIGURACJA BLOCKCHAIN (ZAWSZE HTTP) ===
+RPC_DEFAULT = "https://ronin-mainnet.g.alchemy.com/v2/IJPvvQ6YdcbcF85OD8jNsjBrpGo3-Xh0"
+RPC_RAW = os.getenv("RONIN_RPC", RPC_DEFAULT)
+
+# jeśli wpiszesz kiedyś w .env wss://..., to tu się zamieni na https://
+if RPC_RAW.startswith("wss://"):
+    RPC_HTTP = "https://" + RPC_RAW.removeprefix("wss://")
+else:
+    RPC_HTTP = RPC_RAW
+
+w3 = Web3(Web3.HTTPProvider(RPC_HTTP))
+
+# Ronin = POA, więc dokładnie jak w server.py
+try:
+    w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
+except Exception:
+    # jak już wstrzyknięte / nie trzeba – olewamy
+    pass
 
 # === ABI: UNISWAP V2 PAIR ===
 ABI_PAIR = json.loads("""
@@ -163,8 +180,7 @@ def insert_snapshots(rows):
 
 
 def main():
-    w3 = Web3(Web3.LegacyWebSocketProvider(RONIN_RPC))
-
+    # używamy globalnego w3 na HTTP z wstrzykniętym POA middleware
     if not w3.is_connected():
         print("Brak połączenia z Ronin RPC!")
         return

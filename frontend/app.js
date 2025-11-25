@@ -1,10 +1,19 @@
 // ===== CONFIG =====
+// Jeśli chcesz LP: podaj adres; jeśli nie: pusty string.
 const WALLET = "0x2aEb84d9b061C850B1F3C8C5200BaE14270D49f0";
-const API_URL = `http://70.34.253.119:8000/api/market/${WALLET}`;
+const API_BASE = (() => {
+  if (window.location.protocol.startsWith("http") && window.location.host) {
+    return `${window.location.protocol}//${window.location.host}`;
+  }
+  return "http://127.0.0.1:8000";
+})();
+const API_URL_BASE = `${API_BASE}/api/market`;
+const API_URL_WALLET = WALLET ? `${API_URL_BASE}/${WALLET}` : null;
 
 // ===== STATE =====
 let rows = [];
 let filteredRows = [];
+let baseRows = [];
 
 const nf2 = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const nf0 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
@@ -24,15 +33,52 @@ const state = {
 };
 
 // ===== LOAD MARKET =====
-async function loadMarket() {
+async function loadMarketBase() {
   try {
-    const res = await fetch(API_URL);
+    const res = await fetch(API_URL_BASE);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    rows = Array.isArray(data) ? data : [];
-    applyFilterAndSort();
-    updateUpdatedLabel();
+    if (Array.isArray(data)) {
+      baseRows = data;
+      rows = data;
+      applyFilterAndSort();
+      updateUpdatedLabel();
+    } else {
+      console.warn("Unexpected response shape", data);
+    }
   } catch (err) {
-    console.error("Failed to load market", err);
+    console.error("Failed to load base market", err);
+    // zostawiamy poprzednie rows, żeby tabela nie znikała przy chwilowych błędach
+  }
+}
+
+async function loadMarketWallet() {
+  if (!API_URL_WALLET) return;
+  try {
+    const res = await fetch(API_URL_WALLET);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!Array.isArray(data)) {
+      console.warn("Unexpected wallet response shape", data);
+      return;
+    }
+    const walletMap = new Map(
+      data.map((r) => [String(r.pair_address).toLowerCase(), r])
+    );
+    rows = rows.map((r) => {
+      const w = walletMap.get(String(r.pair_address).toLowerCase());
+      if (!w) return r;
+      return {
+        ...r,
+        lp_balance: w.lp_balance,
+        lp_share: w.lp_share,
+        user_item: w.user_item,
+        user_vee: w.user_vee,
+      };
+    });
+    applyFilterAndSort();
+  } catch (err) {
+    console.error("Failed to load wallet market", err);
   }
 }
 
@@ -74,7 +120,7 @@ function renderTable() {
     const tdItem = document.createElement("td");
     tdItem.innerHTML = `
       <span>${row.item_name || "?"}</span>
-      <span class="pool-address">${row.item_address || ""}</span>
+      <span class="pool-address">${row.pair_address || ""}</span>
     `;
     tr.appendChild(tdItem);
 
@@ -152,5 +198,6 @@ function updateUpdatedLabel() {
 }
 
 // ===== INIT =====
-loadMarket();
-setInterval(loadMarket, 60_000);
+loadMarketBase().then(loadMarketWallet);
+setInterval(loadMarketBase, 60_000);
+setInterval(loadMarketWallet, 120_000);
