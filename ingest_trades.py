@@ -81,6 +81,7 @@ SWAP_TOPIC = Web3.to_hex(
 )
 
 PAIR_META_CACHE = {}
+BLOCK_TS_CACHE = {}
 
 
 # ================== DB HELPERS ==================
@@ -239,8 +240,14 @@ def get_pair_meta(pair_address: str):
 
 
 def get_block_timestamp(block_number: int) -> int:
+    cached = BLOCK_TS_CACHE.get(block_number)
+    if cached is not None:
+        return cached
+
     block = w3.eth.get_block(block_number)
-    return int(block["timestamp"])
+    ts = int(block["timestamp"])
+    BLOCK_TS_CACHE[block_number] = ts
+    return ts
 
 
 # ================== CORE INGEST ==================
@@ -248,6 +255,7 @@ def get_block_timestamp(block_number: int) -> int:
 def decode_swap(log, vee_is_token0: bool):
     """
     Z dekodowanego eventu Swap wylicza ilość VEE.
+    Volume liczymy jako (VEE in + VEE out) / 2, żeby nie dublować wolumenu.
     """
     amount0_in, amount1_in, amount0_out, amount1_out = w3.codec.decode(
         ["uint256", "uint256", "uint256", "uint256"],
@@ -255,14 +263,15 @@ def decode_swap(log, vee_is_token0: bool):
     )
 
     if vee_is_token0:
-        vee_delta = amount0_in + amount0_out
+        raw = amount0_in + amount0_out
     else:
-        vee_delta = amount1_in + amount1_out
+        raw = amount1_in + amount1_out
 
-    if vee_delta <= 0:
+    if raw <= 0:
         return None
 
-    vee_amount = Decimal(vee_delta) / (Decimal(10) ** VEE_DECIMALS)
+    vee_base = Decimal(raw) / Decimal(2)
+    vee_amount = vee_base / (Decimal(10) ** VEE_DECIMALS)
     return vee_amount, amount0_in, amount1_in, amount0_out, amount1_out
 
 
@@ -324,14 +333,6 @@ def ingest():
     total_logs = 0
 
     cur = conn.cursor()
-
-    # we may not own the sequence, so manage IDs manually
-    try:
-        cur.execute("SELECT COALESCE(MAX(id), 0) FROM trades_ronin")
-        next_id = int(cur.fetchone()[0]) + 1
-    except Exception as e:
-        print(f"[INGEST] WARNING: cannot read max(id) from trades_ronin ({e}), fallback to 1")
-        next_id = 1
 
     current_from = start_block + 1
     while current_from <= latest_block:
@@ -401,7 +402,6 @@ def ingest():
 
                 rows_to_insert.append(
                     (
-                        next_id,
                         pair_addr,
                         vee_addr,
                         block_number,
@@ -414,7 +414,6 @@ def ingest():
                         str(vee_amount),
                     )
                 )
-                next_id += 1
             except Exception as e:
                 print(
                     f"[INGEST] ERROR parsing log in {current_from}-{current_to}: {e}"
@@ -428,7 +427,6 @@ def ingest():
                     cur,
                     """
                     INSERT INTO trades_ronin (
-                        id,
                         pair_address,
                         vee_address,
                         block_number,
@@ -436,7 +434,7 @@ def ingest():
                         log_index,
                         ts,
                         vee_amount
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (pair_address, tx_hash, log_index) DO NOTHING
                     """,
                     rows_to_insert,

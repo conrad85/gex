@@ -238,3 +238,105 @@ tr.has-lp {
   margin-top: 12px;
 }
 
+/* ===== OPTIMIZER ===== */
+
+.optimizer-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+}
+
+.optimizer-controls input {
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #1f2937;
+  background-color: #020617;
+  color: #e5e7eb;
+  min-width: 320px;
+}
+
+.optimizer-controls button {
+  padding: 5px 10px;
+  border-radius: 4px;
+  border: 1px solid #1f2937;
+  background-color: #1f2937;
+  color: #e5e7eb;
+  cursor: pointer;
+}
+.optimizer-controls button:hover {
+  background-color: #374151;
+}
+
+.optimizer-note {
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+.optimizer-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.optimizer-card {
+  background-color: #020617;
+  border: 1px solid #1f2937;
+  border-radius: 6px;
+  padding: 8px 10px;
+  min-width: 180px;
+}
+
+.optimizer-card .card-title {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+
+.optimizer-card .card-main {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.optimizer-card .card-sub {
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+/* pills / recommendation */
+
+.pill {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pill-bad {
+  background-color: #450a0a;
+  color: #fecaca;
+}
+
+.pill-warn {
+  background-color: #422006;
+  color: #fed7aa;
+}
+
+.pill-ok {
+  background-color: #064e3b;
+  color: #bbf7d0;
+}
+
+.pill-good {
+  background-color: #022c22;
+  color: #bbf7d0;
+}
+
+.pill-neutral {
+  background-color: #111827;
+  color: #e5e7eb;
+}

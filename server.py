@@ -3,12 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import psycopg2
 import os
+import time
 from dotenv import load_dotenv
 from web3 import Web3
 from web3.middleware import ExtraDataToPOAMiddleware
 import json
-import time
 import traceback
+from datetime import datetime
 
 load_dotenv()
 
@@ -40,6 +41,9 @@ DB_PARAMS = {
 
 # Szacowane fee od wolumenu, które trafia do LP (np. 5% -> 0.05)
 LP_FEE_RATE = float(os.getenv("LP_FEE_RATE", "0.05"))
+
+# Opcjonalna cena VEE w USD (do przeliczeń IL na USD)
+VEE_USD_PRICE = float(os.getenv("VEE_USD", "0") or "0")
 
 # RPC (HTTP)
 RPC_DEFAULT = "https://ronin-mainnet.g.alchemy.com/v2/IJPvvQ6YdcbcF85OD8jNsjBrpGo3-Xh0"
@@ -85,6 +89,9 @@ LP_CACHE = {}
 LP_CACHE_TTL = 300  # seconds
 
 
+# ================== CORE SNAPSHOTS ==================
+
+
 def query_latest():
     """
     Pobiera ostatni snapshot każdej pary z gex_snapshots
@@ -126,24 +133,6 @@ def query_latest():
         WHERE ts >= NOW() - INTERVAL '7 days'
         GROUP BY LOWER(pair_address)
     ),
-    vol24_prev AS (
-        SELECT
-            LOWER(pair_address) AS pair_lower,
-            COALESCE(SUM(vee_amount), 0) AS volume_24h_prev_vee
-        FROM trades_ronin
-        WHERE ts >= NOW() - INTERVAL '48 hours'
-          AND ts <  NOW() - INTERVAL '24 hours'
-        GROUP BY LOWER(pair_address)
-    ),
-    vol7_prev AS (
-        SELECT
-            LOWER(pair_address) AS pair_lower,
-            COALESCE(SUM(vee_amount), 0) AS volume_7d_prev_vee
-        FROM trades_ronin
-        WHERE ts >= NOW() - INTERVAL '14 days'
-          AND ts <  NOW() - INTERVAL '7 days'
-        GROUP BY LOWER(pair_address)
-    ),
     price24 AS (
         SELECT DISTINCT ON (pair_address)
             pair_address,
@@ -161,6 +150,24 @@ def query_latest():
         FROM gex_snapshots
         WHERE ts <= NOW() - INTERVAL '7 days'
         ORDER BY pair_address, ts DESC
+    ),
+    vol24_prev AS (
+        SELECT
+            LOWER(pair_address) AS pair_lower,
+            COALESCE(SUM(vee_amount), 0) AS volume_24h_prev_vee
+        FROM trades_ronin
+        WHERE ts >= NOW() - INTERVAL '48 hours'
+          AND ts <  NOW() - INTERVAL '24 hours'
+        GROUP BY LOWER(pair_address)
+    ),
+    vol7_prev AS (
+        SELECT
+            LOWER(pair_address) AS pair_lower,
+            COALESCE(SUM(vee_amount), 0) AS volume_7d_prev_vee
+        FROM trades_ronin
+        WHERE ts >= NOW() - INTERVAL '14 days'
+          AND ts <  NOW() - INTERVAL '7 days'
+        GROUP BY LOWER(pair_address)
     )
     SELECT
         l.pair_address,
@@ -171,42 +178,45 @@ def query_latest():
         l.vee_address,
         l.item_address,
         l.ts,
-        COALESCE(v24.volume_24h_vee, 0) AS volume_24h_vee,
-        COALESCE(v24.volume_24h_vee, 0) AS volume_24h_est,
-        COALESCE(v24.trades_24h, 0)       AS volume_24h_trades,
-        COALESCE(v7.volume_7d_vee, 0)     AS volume_7d_vee,
-        COALESCE(v7.trades_7d, 0)         AS volume_7d_trades,
-        COALESCE(p24.price_24h_ago, 0)    AS price_24h_ago,
-        COALESCE(p7.price_7d_ago, 0)      AS price_7d_ago,
+        COALESCE(v24.volume_24h_vee, 0)     AS volume_24h_vee,
+        COALESCE(v24.trades_24h, 0)         AS volume_24h_trades,
+        COALESCE(v7.volume_7d_vee, 0)       AS volume_7d_vee,
+        COALESCE(v7.trades_7d, 0)           AS volume_7d_trades,
+        p24.price_24h_ago,
+        p7.price_7d_ago,
+        COALESCE(
+            CASE
+                WHEN p24.price_24h_ago IS NULL OR p24.price_24h_ago = 0 THEN NULL
+                ELSE ((l.price_vee - p24.price_24h_ago) / p24.price_24h_ago) * 100
+            END, 0
+        ) AS price_change_24h_pct,
+        COALESCE(
+            CASE
+                WHEN p7.price_7d_ago IS NULL OR p7.price_7d_ago = 0 THEN NULL
+                ELSE ((l.price_vee - p7.price_7d_ago) / p7.price_7d_ago) * 100
+            END, 0
+        ) AS price_change_7d_pct,
+        COALESCE(v24_prev.volume_24h_prev_vee, 0) AS volume_24h_prev_vee,
+        COALESCE(v7_prev.volume_7d_prev_vee, 0)   AS volume_7d_prev_vee,
         CASE
-            WHEN p24.price_24h_ago IS NULL OR p24.price_24h_ago = 0 THEN NULL
-            ELSE (l.price_vee - p24.price_24h_ago) / p24.price_24h_ago * 100
-        END AS price_change_24h_pct,
-        CASE
-            WHEN p7.price_7d_ago IS NULL OR p7.price_7d_ago = 0 THEN NULL
-            ELSE (l.price_vee - p7.price_7d_ago) / p7.price_7d_ago * 100
-        END AS price_change_7d_pct,
-        COALESCE(v24prev.volume_24h_prev_vee, 0) AS volume_24h_prev_vee,
-        COALESCE(v7prev.volume_7d_prev_vee, 0)   AS volume_7d_prev_vee,
-        CASE
-            WHEN v24prev.volume_24h_prev_vee IS NULL OR v24prev.volume_24h_prev_vee = 0 THEN NULL
-            ELSE
-                (COALESCE(v24.volume_24h_vee, 0) - v24prev.volume_24h_prev_vee)
-                / v24prev.volume_24h_prev_vee * 100
+            WHEN v24_prev.volume_24h_prev_vee IS NULL
+                 OR v24_prev.volume_24h_prev_vee = 0 THEN NULL
+            ELSE ( (COALESCE(v24.volume_24h_vee, 0) - v24_prev.volume_24h_prev_vee)
+                   / v24_prev.volume_24h_prev_vee ) * 100
         END AS volume_change_24h_pct,
         CASE
-            WHEN v7prev.volume_7d_prev_vee IS NULL OR v7prev.volume_7d_prev_vee = 0 THEN NULL
-            ELSE
-                (COALESCE(v7.volume_7d_vee, 0) - v7prev.volume_7d_prev_vee)
-                / v7prev.volume_7d_prev_vee * 100
+            WHEN v7_prev.volume_7d_prev_vee IS NULL
+                 OR v7_prev.volume_7d_prev_vee = 0 THEN NULL
+            ELSE ( (COALESCE(v7.volume_7d_vee, 0) - v7_prev.volume_7d_prev_vee)
+                   / v7_prev.volume_7d_prev_vee ) * 100
         END AS volume_change_7d_pct
-    FROM latest l
-    LEFT JOIN vol24      v24      ON v24.pair_lower      = l.pair_lower
-    LEFT JOIN vol7       v7       ON v7.pair_lower       = l.pair_lower
-    LEFT JOIN vol24_prev v24prev  ON v24prev.pair_lower  = l.pair_lower
-    LEFT JOIN vol7_prev  v7prev   ON v7prev.pair_lower   = l.pair_lower
-    LEFT JOIN price24    p24      ON p24.pair_lower      = l.pair_lower
-    LEFT JOIN price7     p7       ON p7.pair_lower       = l.pair_lower;
+    FROM latest    l
+    LEFT JOIN vol24       v24      ON v24.pair_lower      = l.pair_lower
+    LEFT JOIN vol7        v7       ON v7.pair_lower       = l.pair_lower
+    LEFT JOIN price24     p24      ON p24.pair_lower      = l.pair_lower
+    LEFT JOIN price7      p7       ON p7.pair_lower       = l.pair_lower
+    LEFT JOIN vol24_prev  v24_prev ON v24_prev.pair_lower = l.pair_lower
+    LEFT JOIN vol7_prev   v7_prev  ON v7_prev.pair_lower  = l.pair_lower;
     """
 
     cur.execute(query)
@@ -224,7 +234,6 @@ def query_latest():
         "item_address",
         "ts",
         "volume_24h_vee",
-        "volume_24h_est",
         "volume_24h_trades",
         "volume_7d_vee",
         "volume_7d_trades",
@@ -240,6 +249,8 @@ def query_latest():
 
     return [dict(zip(columns, row)) for row in rows]
 
+
+# ================== LP HELPERS ==================
 
 
 def get_lp_info(pair_address: str, wallet_checksum: str):
@@ -271,6 +282,273 @@ def get_lp_info(pair_address: str, wallet_checksum: str):
         return bal_f, share
     except Exception:
         return 0.0, 0.0
+
+
+def query_lp_latest(wallet: str):
+    """
+    Ostatni snapshot z lp_snapshots dla każdej pary danego walleta.
+    """
+    conn = psycopg2.connect(**DB_PARAMS)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT DISTINCT ON (pair_address)
+            pair_address,
+            item_name,
+            ts,
+            price_vee,
+            reserve_vee,
+            reserve_item,
+            lp_balance,
+            lp_share,
+            user_vee,
+            user_item,
+            volume_24h_vee,
+            volume_7d_vee,
+            lp_earn_vee_24h,
+            lp_earn_vee_7d,
+            lp_apr
+        FROM lp_snapshots
+        WHERE LOWER(wallet_address) = LOWER(%s)
+        ORDER BY pair_address, ts DESC
+        """,
+        (wallet,),
+    )
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    cols = [
+        "pair_address",
+        "item_name",
+        "ts",
+        "price_vee",
+        "reserve_vee",
+        "reserve_item",
+        "lp_balance",
+        "lp_share",
+        "user_vee",
+        "user_item",
+        "volume_24h_vee",
+        "volume_7d_vee",
+        "lp_earn_vee_24h",
+        "lp_earn_vee_7d",
+        "lp_apr",
+    ]
+    result = []
+    for r in rows:
+        d = dict(zip(cols, r))
+        for k in [
+            "price_vee",
+            "reserve_vee",
+            "reserve_item",
+            "lp_balance",
+            "lp_share",
+            "user_vee",
+            "user_item",
+            "volume_24h_vee",
+            "volume_7d_vee",
+            "lp_earn_vee_24h",
+            "lp_earn_vee_7d",
+            "lp_apr",
+        ]:
+            if k in d and d[k] is not None:
+                d[k] = float(d[k])
+        if isinstance(d.get("ts"), datetime):
+            d["ts"] = d["ts"].isoformat()
+        result.append(d)
+
+    return result
+
+
+def query_lp_history(wallet: str):
+    """
+    Pełna historia LP dla walleta – pod IL.
+    Zostawiamy ts jako datetime (bez isoformat), bo liczymy różnicę czasową.
+    """
+    conn = psycopg2.connect(**DB_PARAMS)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT
+            pair_address,
+            item_name,
+            ts,
+            price_vee,
+            user_vee,
+            user_item,
+            lp_apr
+        FROM lp_snapshots
+        WHERE LOWER(wallet_address) = LOWER(%s)
+        ORDER BY pair_address, ts ASC
+        """,
+        (wallet,),
+    )
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    cols = [
+        "pair_address",
+        "item_name",
+        "ts",
+        "price_vee",
+        "user_vee",
+        "user_item",
+        "lp_apr",
+    ]
+    out = []
+    for r in rows:
+        d = dict(zip(cols, r))
+        for k in ["price_vee", "user_vee", "user_item", "lp_apr"]:
+            if k in d and d[k] is not None:
+                d[k] = float(d[k])
+        # ts zostaje datetime
+        out.append(d)
+    return out
+
+
+def calc_il(entry_vee, entry_item, cur_vee, cur_item, price_vee):
+    """
+    IL liczony w VEE:
+    - value_hodl = (entry_vee + entry_item * price_now)
+    - value_lp   = (cur_vee   + cur_item   * price_now)
+    """
+    if price_vee is None:
+        return 0.0, 0.0, 0.0, 0.0
+
+    entry_vee = float(entry_vee or 0.0)
+    entry_item = float(entry_item or 0.0)
+    cur_vee = float(cur_vee or 0.0)
+    cur_item = float(cur_item or 0.0)
+    price_vee = float(price_vee or 0.0)
+
+    value_hodl = entry_vee + entry_item * price_vee
+    value_lp = cur_vee + cur_item * price_vee
+
+    if value_hodl <= 0:
+        return 0.0, 0.0, value_hodl, value_lp
+
+    il = value_lp - value_hodl
+    il_pct = (il / value_hodl) * 100.0
+    return il, il_pct, value_hodl, value_lp
+
+
+def compute_lp_il_for_wallet(wallet: str):
+    """
+    Zwraca IL per para + prosty scoring "opłacalności":
+    net_effective_pct = lp_apr (z ostatniego snapshotu) + IL annualized.
+    """
+    history = query_lp_history(wallet)
+    if not history:
+        return []
+
+    per_pair = {}
+    for row in history:
+        key = row["pair_address"].lower()
+        per_pair.setdefault(key, []).append(row)
+
+    results = []
+    total_positive_score = 0.0
+
+    for key, rows in per_pair.items():
+        if not rows:
+            continue
+
+        rows_sorted = sorted(rows, key=lambda r: r["ts"])
+        entry = rows_sorted[0]
+        current = rows_sorted[-1]
+
+        entry_vee = entry.get("user_vee") or 0.0
+        entry_item = entry.get("user_item") or 0.0
+        cur_vee = current.get("user_vee") or 0.0
+        cur_item = current.get("user_item") or 0.0
+
+        price_now = current.get("price_vee") or 0.0
+        il_vee, il_pct, value_hodl, value_lp = calc_il(
+            entry_vee, entry_item, cur_vee, cur_item, price_now
+        )
+
+        try:
+            t0 = entry["ts"]
+            t1 = current["ts"]
+            delta_days = max((t1 - t0).total_seconds() / 86400.0, 0.0)
+        except Exception:
+            delta_days = 0.0
+
+        if delta_days <= 0 or il_pct is None:
+            il_annualized_pct = None
+        else:
+            il_annualized_pct = il_pct * (365.0 / max(delta_days, 1e-6))
+
+        lp_apr = current.get("lp_apr")
+        if lp_apr is not None:
+            lp_apr = float(lp_apr)
+
+        net_effective_pct = None
+        if lp_apr is not None and il_annualized_pct is not None:
+            net_effective_pct = lp_apr + il_annualized_pct
+        elif lp_apr is not None:
+            net_effective_pct = lp_apr
+
+        il_usd = None
+        value_hodl_usd = None
+        value_lp_usd = None
+        if VEE_USD_PRICE > 0:
+            il_usd = il_vee * VEE_USD_PRICE
+            value_hodl_usd = value_hodl * VEE_USD_PRICE
+            value_lp_usd = value_lp * VEE_USD_PRICE
+
+        results.append(
+            {
+                "pair_address": current["pair_address"],
+                "item_name": current.get("item_name"),
+                "entry_ts": entry["ts"].isoformat() if isinstance(entry["ts"], datetime) else entry["ts"],
+                "current_ts": current["ts"].isoformat() if isinstance(current["ts"], datetime) else current["ts"],
+                "days_in_position": delta_days,
+                "entry_user_vee": entry_vee,
+                "entry_user_item": entry_item,
+                "current_user_vee": cur_vee,
+                "current_user_item": cur_item,
+                "price_vee_now": price_now,
+                "value_hodl_vee": value_hodl,
+                "value_lp_vee": value_lp,
+                "il_vee": il_vee,
+                "il_pct": il_pct,
+                "il_annualized_pct": il_annualized_pct,
+                "lp_apr": lp_apr,
+                "net_effective_pct": net_effective_pct,
+                "il_usd": il_usd,
+                "value_hodl_usd": value_hodl_usd,
+                "value_lp_usd": value_lp_usd,
+            }
+        )
+
+    positive = [
+        r
+        for r in results
+        if r["net_effective_pct"] is not None and r["net_effective_pct"] > 0
+    ]
+    total_score = (
+        sum(r["net_effective_pct"] for r in positive) if positive else 0.0
+    )
+
+    for r in results:
+        if total_score > 0 and r in positive:
+            r["target_weight"] = r["net_effective_pct"] / total_score
+        else:
+            r["target_weight"] = 0.0
+
+    results.sort(
+        key=lambda r: (
+            r["net_effective_pct"] is None,
+            -(r["net_effective_pct"] or -1e9),
+        )
+    )
+    return results
+
+
+# ================== ROUTES ==================
 
 
 @app.get("/api/market")
@@ -306,7 +584,6 @@ def get_latest_snapshots_with_volume_and_lp(wallet: str):
             row["user_item"] = lp_share * reserve_item
             row["user_vee"] = lp_share * reserve_vee
 
-            # Szacowane zarobki LP w VEE (24h / 7d)
             vol24 = float(row.get("volume_24h_vee") or 0.0)
             vol7 = float(row.get("volume_7d_vee") or 0.0)
 
@@ -319,16 +596,15 @@ def get_latest_snapshots_with_volume_and_lp(wallet: str):
 
     return data
 
+
 @app.get("/api/history/{pair_address}")
 def get_pair_history(pair_address: str):
     """
     Zwraca historię ceny + rezerw dla pary oraz dzienny wolumen z trades_ronin.
-    Idealne pod wykresy na stronie itemu.
     """
     conn = psycopg2.connect(**DB_PARAMS)
     cur = conn.cursor()
 
-    # historia snapshotów
     cur.execute(
         """
         SELECT ts, price_vee, reserve_vee, reserve_item
@@ -349,7 +625,6 @@ def get_pair_history(pair_address: str):
         for row in snap_rows
     ]
 
-    # dzienny wolumen z trades_ronin
     cur.execute(
         """
         SELECT date_trunc('day', ts) AS day, SUM(vee_amount) AS volume_vee
@@ -373,6 +648,27 @@ def get_pair_history(pair_address: str):
     conn.close()
 
     return {"snapshots": snapshots, "daily_volume": volumes}
+
+
+@app.get("/api/lp/{wallet}")
+def get_lp_latest(wallet: str):
+    """
+    Ostatnie snapshoty LP z lp_snapshots (per para).
+    """
+    return query_lp_latest(wallet)
+
+
+@app.get("/api/lp/{wallet}/il")
+def get_lp_il(wallet: str):
+    """
+    IL kalkulator + prosty scoring optymalności par:
+    - il_vee, il_pct, il_annualized_pct
+    - lp_apr
+    - net_effective_pct (APR + annualizowany IL)
+    - target_weight (propozycja wag kapitału między parami)
+    """
+    return compute_lp_il_for_wallet(wallet)
+
 
 if __name__ == "__main__":
     import uvicorn

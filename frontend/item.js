@@ -9,6 +9,8 @@ const WALLET = "0x2aEb84d9b061C850B1F3C8C5200BaE14270D49f0";
 const API_URL_BASE = `${API_BASE}/api/market`;
 const API_URL_WALLET = `${API_BASE}/api/market/${WALLET}`;
 const API_URL_HISTORY = `${API_BASE}/api/history`;
+const API_URL_LP_HISTORY7 = `${API_BASE}/api/lp/history7/${WALLET}`;
+const API_URL_LP_HISTORY30 = `${API_BASE}/api/lp/history30/${WALLET}`;
 
 const nf2 = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
@@ -30,19 +32,25 @@ async function loadItem() {
     return;
   }
 
-  // snapshot + LP z tego samego setupu co index
-  const [baseData, walletData, historyData] = await Promise.all([
+  const lpHistoryUrl = `${API_URL_LP_HISTORY30}?pair=${encodeURIComponent(
+    pair
+  )}`;
+
+  // snapshot + LP z tego samego setupu co index + historia LP
+  const [baseData, walletData, historyData, lpHistoryData] = await Promise.all([
     fetch(API_URL_BASE).then((r) => r.json()),
     fetch(API_URL_WALLET).then((r) => r.json()),
     fetch(`${API_URL_HISTORY}/${pair}`).then((r) => r.json()),
+    fetch(lpHistoryUrl).then((r) => r.json()),
   ]);
 
-  const row = walletData.find(
-    (r) => String(r.pair_address).toLowerCase() === pair.toLowerCase()
-  ) ||
-  baseData.find(
-    (r) => String(r.pair_address).toLowerCase() === pair.toLowerCase()
-  );
+  const row =
+    walletData.find(
+      (r) => String(r.pair_address).toLowerCase() === pair.toLowerCase()
+    ) ||
+    baseData.find(
+      (r) => String(r.pair_address).toLowerCase() === pair.toLowerCase()
+    );
 
   if (!row) {
     document.getElementById("item-title").textContent = "Item not found";
@@ -96,10 +104,10 @@ async function loadItem() {
     tbody.appendChild(tr);
   });
 
-  buildCharts(historyData);
+  buildCharts(historyData, lpHistoryData);
 }
 
-function buildCharts(history) {
+function buildCharts(history, lpHistory) {
   const snaps = history.snapshots || [];
   const vols = history.daily_volume || [];
 
@@ -161,6 +169,78 @@ function buildCharts(history) {
         x: {
           ticks: {
             callback: (v) => volLabels[v]?.slice(5) || "",
+          },
+        },
+        y: {
+          beginAtZero: true,
+        },
+      },
+    },
+  });
+
+  // ===== LP HISTORY CHARTS =====
+  const lpPoints = (lpHistory && lpHistory.points) || [];
+  if (!lpPoints.length) return;
+
+  const lpLabels = lpPoints.map((p) => p.ts);
+  const lpVee = lpPoints.map((p) => Number(p.user_vee || 0));
+  const lpItem = lpPoints.map((p) => Number(p.user_item || 0));
+
+  const lpVeeCtx = document.getElementById("lp-vee-chart").getContext("2d");
+  new Chart(lpVeeCtx, {
+    type: "line",
+    data: {
+      labels: lpLabels,
+      datasets: [
+        {
+          label: "My VEE in LP",
+          data: lpVee,
+          fill: false,
+        },
+      ],
+    },
+    options: {
+      animation: false,
+      responsive: true,
+      scales: {
+        x: {
+          ticks: {
+            callback: (v) => {
+              const raw = lpLabels[v];
+              return raw ? raw.slice(5, 16) : "";
+            },
+          },
+        },
+        y: {
+          beginAtZero: true,
+        },
+      },
+    },
+  });
+
+  const lpItemCtx = document.getElementById("lp-item-chart").getContext("2d");
+  new Chart(lpItemCtx, {
+    type: "line",
+    data: {
+      labels: lpLabels,
+      datasets: [
+        {
+          label: "My item amount in LP",
+          data: lpItem,
+          fill: false,
+        },
+      ],
+    },
+    options: {
+      animation: false,
+      responsive: true,
+      scales: {
+        x: {
+          ticks: {
+            callback: (v) => {
+              const raw = lpLabels[v];
+              return raw ? raw.slice(5, 16) : "";
+            },
           },
         },
         y: {

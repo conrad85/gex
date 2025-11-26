@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Zeeverse GEX – LP Optimizer</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a href="index.html" class="back-link">← Back to market</a>
+
+  <h1>LP Optimizer</h1>
+
+  <div class="optimizer-controls">
+    <label>
+      Wallet:
+      <input
+        id="wallet-input"
+        type="text"
+        value="0x2aEb84d9b061C850B1F3C8C5200BaE14270D49f0"
+      />
+    </label>
+    <button id="load-btn">Load</button>
+    <span id="optimizer-status" class="optimizer-note"></span>
+  </div>
+
+  <div id="optimizer-summary" class="optimizer-summary"></div>
+
+  <table id="optimizer-table">
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>Pair</th>
+        <th>Days in LP</th>
+        <th>LP value (VEE)</th>
+        <th>LP value (USD)</th>
+        <th>IL (VEE)</th>
+        <th>IL % total</th>
+        <th>IL % annualized</th>
+        <th>LP APR % (fees)</th>
+        <th>Net effective %</th>
+        <th>Target weight</th>
+        <th>Recommendation</th>
+      </tr>
+    </thead>
+    <tbody id="optimizer-body"></tbody>
+  </table>
+
+  <script src="optimizer.js"></script>
+</body>
+</html>
