@@ -8,33 +8,46 @@
 <body>
   <h1>Zeeverse GEX - All Items</h1>
 
-  <input
-    id="search"
-    placeholder="Filter by item name..."
-    style="margin-bottom: 10px; width: 250px;"
-  />
+  <div class="top-bar">
+    <input
+      id="search"
+      placeholder="Filter by item name..."
+      class="search-input"
+    />
 
-  <div id="row-count" style="margin-bottom: 10px;"></div>
+    <label class="lp-toggle">
+      <input type="checkbox" id="hide-zero-lp" />
+      Hide zero LP positions
+    </label>
+  </div>
+
+  <div id="row-count" class="row-count"></div>
 
   <table>
     <thead>
       <tr>
         <th data-key="item_name">Item</th>
         <th data-key="price_vee">Price (VEE)</th>
-        <th data-key="reserve_vee">Reserves VEE</th>
-        <th data-key="reserve_item">Reserves Item</th>
-        <th data-key="volume_24h_est">Volume 24h</th>
-        <th data-key="volume_7d_vee">Volume 7d</th>
-        <th data-key="ts">Updated</th>
+        <th data-key="price_change_24h_pct">Price Δ 24h %</th>
+        <th data-key="price_change_7d_pct">Price Δ 7d %</th>
+        <th data-key="volume_24h_vee">Volume 24h (VEE)</th>
+        <th data-key="volume_change_24h_pct">Vol Δ 24h %</th>
+        <th data-key="volume_7d_vee">Volume 7d (VEE)</th>
+        <th data-key="volume_change_7d_pct">Vol Δ 7d %</th>
         <th data-key="lp_share">My LP %</th>
-        <th data-key="user_item">My Items in LP</th>
-        <th data-key="user_vee">My VEE in LP</th>
+        <th data-key="lp_earn_vee_24h">My fees 24h (VEE)</th>
+        <th data-key="lp_earn_vee_7d">My fees 7d (VEE)</th>
+        <th data-key="lp_apr">My LP APR (est)</th>
+        <th data-key="ts">Updated</th>
       </tr>
     </thead>
     <tbody id="market-body"></tbody>
   </table>
 
-  <div id="last-updated" style="margin-top: 15px;"></div>
+  <h2 class="lp-summary-title">My LP summary</h2>
+  <div id="lp-summary"></div>
+
+  <div id="last-updated" class="last-updated"></div>
 
   <script src="app.js"></script>
 </body>

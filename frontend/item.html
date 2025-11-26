@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Item details</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <a href="index.html" class="back-link">← Back</a>
+
+  <h1 id="item-title">Item details</h1>
+
+  <div id="item-info" class="item-info"></div>
+
+  <table id="details-table">
+    <thead>
+      <tr>
+        <th>Field</th>
+        <th>Value</th>
+      </tr>
+    </thead>
+    <tbody id="details-body"></tbody>
+  </table>
+
+  <h2 class="lp-summary-title">Price history</h2>
+  <canvas id="price-chart" height="80"></canvas>
+
+  <h2 class="lp-summary-title">Daily volume (VEE)</h2>
+  <canvas id="volume-chart" height="80"></canvas>
+
+  <script src="item.js"></script>
+</body>
+</html>

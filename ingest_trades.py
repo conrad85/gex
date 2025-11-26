@@ -1,4 +1,4 @@
-﻿import os
+import os
 import time
 import json
 import traceback
@@ -35,8 +35,10 @@ w3 = Web3(Web3.HTTPProvider(RPC_HTTP))
 w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
 
 TRADES_START_BLOCK_ENV = os.getenv("TRADES_START_BLOCK", "").strip()
-BLOCK_STEP = 10           # bo Alchemy na free tierze ma limit 10 bloków dla eth_getLogs
+BLOCK_STEP = 10  # bo Alchemy na free tierze ma limit 10 bloków dla eth_getLogs
 VEE_DECIMALS = 18
+MAX_RETRIES = int(os.getenv("TRADES_MAX_RETRIES", "5"))
+RETRY_SLEEP_BASE = float(os.getenv("TRADES_RETRY_SLEEP", "1.0"))
 
 ABI_PAIR = json.loads(
     """
@@ -268,9 +270,26 @@ def ingest():
     conn = get_conn()
     ensure_tables(conn)
 
+    # prosty mutex na poziomie bazy - tylko jeden ingest na raz
+    cur = conn.cursor()
+    cur.execute("SELECT pg_try_advisory_lock(987654321)")
+    got_lock = cur.fetchone()[0]
+    if not got_lock:
+        print("[INGEST] Inna instancja ingest_trades już działa - wychodzę.")
+        cur.close()
+        conn.close()
+        return
+    cur.close()
+
     pairs = get_pairs(conn)
     if not pairs:
-        print("[INGEST] Brak par w gex_snapshots – nie mam czego śledzić.")
+        print("[INGEST] Brak par w gex_snapshots - nie mam czego śledzić.")
+        # zwalniamy lock przed wyjściem
+        cur = conn.cursor()
+        cur.execute("SELECT pg_advisory_unlock(987654321)")
+        conn.commit()
+        cur.close()
+        conn.close()
         return
 
     print(f"[INGEST] Pary do śledzenia: {len(pairs)}")
@@ -289,6 +308,12 @@ def ingest():
         print(
             f"[INGEST] Nic do zrobienia (start_block={start_block}, latest={latest_block})"
         )
+        # zwolnij lock i wyjdź
+        cur = conn.cursor()
+        cur.execute("SELECT pg_advisory_unlock(987654321)")
+        conn.commit()
+        cur.close()
+        conn.close()
         return
 
     print(
@@ -312,27 +337,39 @@ def ingest():
     while current_from <= latest_block:
         current_to = min(current_from + BLOCK_STEP - 1, latest_block)
 
-        try:
-            logs = w3.eth.get_logs(
-                {
-                    "fromBlock": hex(int(current_from)),
-                    "toBlock": hex(int(current_to)),
-                    "address": pair_addresses_checksum,
-                    "topics": [SWAP_TOPIC],
-                }
-            )
-        except Exception as e:
-            # Alchemy lubi rzucać jasne komunikaty, więc je wypisujemy i lecimy dalej
-            print(
-                f"[INGEST] get_logs failed for {current_from}-{current_to}: {e}"
-            )
-            current_from = current_to + 1
-            continue
+        attempt = 0
+        while True:
+            try:
+                logs = w3.eth.get_logs(
+                    {
+                        "fromBlock": hex(int(current_from)),
+                        "toBlock": hex(int(current_to)),
+                        "address": pair_addresses_checksum,
+                        "topics": [SWAP_TOPIC],
+                    }
+                )
+                break  # sukces, wychodzimy z pętli retry
+            except Exception as e:
+                attempt += 1
+                print(
+                    f"[INGEST] get_logs failed for {current_from}-{current_to} "
+                    f"(attempt {attempt}/{MAX_RETRIES}): {e}"
+                )
+                if attempt >= MAX_RETRIES:
+                    print(
+                        f"[INGEST] ZA DUŻO BŁĘDÓW dla bloków {current_from}-{current_to}, "
+                        f"przerywam bieg bez aktualizacji kursora - spróbuję w następnym runie."
+                    )
+                    cur.close()
+                    conn.close()
+                    return
+
+                sleep_for = min(60.0, RETRY_SLEEP_BASE * attempt)
+                print(f"[INGEST] czekam {sleep_for:.1f}s przed kolejną próbą...")
+                time.sleep(sleep_for)
 
         if logs:
-            print(
-                f"[INGEST] Bloki {current_from}-{current_to}: {len(logs)} logów"
-            )
+            print(f"[INGEST] Bloki {current_from}-{current_to}: {len(logs)} logów")
         total_logs += len(logs)
 
         rows_to_insert = []
@@ -341,7 +378,7 @@ def ingest():
                 pair_addr = log["address"].lower()
                 vee_addr = pair_to_vee.get(pair_addr)
                 if not vee_addr:
-                    # para spoza listy – ignorujemy
+                    # para spoza listy - ignorujemy
                     continue
 
                 meta = get_pair_meta(pair_addr)
@@ -413,7 +450,13 @@ def ingest():
         current_from = current_to + 1
 
     save_last_block(conn, latest_block)
+
+    # zwolnij advisory lock
+    cur = conn.cursor()
+    cur.execute("SELECT pg_advisory_unlock(987654321)")
+    conn.commit()
     cur.close()
+
     conn.close()
 
     print(
