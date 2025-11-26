@@ -193,6 +193,26 @@ async function loadMarketWallet() {
   }
 }
 
+async function loadVeePrice() {
+  try {
+    const res = await fetch(`${API_BASE}/api/vee_price`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const price = data.vee_usd;
+
+    const el = document.getElementById("veePrice");
+    if (price > 0) {
+      el.innerText = `VEE price: $${price.toFixed(8)}`;
+    } else {
+      el.innerText = "VEE price: unavailable";
+    }
+  } catch (e) {
+    console.error("VEE price error:", e);
+    document.getElementById("veePrice").innerText = "VEE price: error";
+  }
+}
+
+
 // ===== FILTER + SORT =====
 function applyFilterAndSort() {
   const f = state.filter.trim().toLowerCase();
@@ -447,6 +467,11 @@ async function refreshAll() {
   await loadMarketBase();
   await loadMarketWallet();
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadVeePrice();
+  refreshAll();
+});
 
 refreshAll();
 setInterval(refreshAll, 60_000);

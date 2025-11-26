@@ -627,6 +627,12 @@ def get_latest_snapshots_with_volume_and_lp(wallet: str):
     return data
 
 
+@app.get("/api/vee_price")
+def api_get_vee_price():
+    price = get_vee_usd_price()
+    return {"vee_usd": price}
+
+
 @app.get("/api/history/{pair_address}")
 def get_pair_history(pair_address: str):
     """
@@ -694,6 +700,10 @@ def api_get_lp_il(wallet: str):
         "vee_usd_price": vee_usd,
         "pairs": results,
     }
+
+@app.get("/api/vee_price")
+def get_vee_price():
+    return {"vee_usd": get_vee_usd_price()}
 
 
 if __name__ == "__main__":
