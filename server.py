@@ -559,42 +559,57 @@ def get_latest_snapshots_with_volume():
 
 @app.get("/api/market/{wallet}")
 def get_latest_snapshots_with_volume_and_lp(wallet: str):
+    """
+    Market + LP:
+    - market z gex_snapshots (query_latest)
+    - LP z tabeli lp_cache (update co 10 min)
+    Brak RPC przy każdym wejściu na UI.
+    """
     data = query_latest()
 
-    try:
-        wallet_checksum = w3.to_checksum_address(wallet)
-    except Exception:
-        return data
+    # Wczytujemy cache LP z bazy
+    conn = psycopg2.connect(**DB_PARAMS)
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT LOWER(pair_address) AS pair_lower,
+               lp_balance, lp_share, user_vee, user_item
+        FROM lp_cache
+    """)
+    cache_rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    cache = {
+        row[0]: {
+            "lp_balance": float(row[1] or 0.0),
+            "lp_share": float(row[2] or 0.0),
+            "user_vee": float(row[3] or 0.0),
+            "user_item": float(row[4] or 0.0),
+        }
+        for row in cache_rows
+    }
 
     for row in data:
-        row["lp_balance"] = 0.0
-        row["lp_share"] = 0.0
-        row["user_item"] = 0.0
-        row["user_vee"] = 0.0
+        key = row["pair_address"].lower()
+        lp = cache.get(key)
+
+        if lp:
+            row["lp_balance"] = lp["lp_balance"]
+            row["lp_share"] = lp["lp_share"]
+            row["user_vee"] = lp["user_vee"]
+            row["user_item"] = lp["user_item"]
+        else:
+            row["lp_balance"] = 0.0
+            row["lp_share"] = 0.0
+            row["user_vee"] = 0.0
+            row["user_item"] = 0.0
+
+        # Na razie fee earnings 24h/7d = 0 (możemy potem dorobić z trades_ronin)
         row["lp_earn_vee_24h"] = 0.0
         row["lp_earn_vee_7d"] = 0.0
 
-        try:
-            lp_balance, lp_share = get_lp_info(row["pair_address"], wallet_checksum)
-            reserve_item = float(row["reserve_item"] or 0)
-            reserve_vee = float(row["reserve_vee"] or 0)
-
-            row["lp_balance"] = lp_balance
-            row["lp_share"] = lp_share
-            row["user_item"] = lp_share * reserve_item
-            row["user_vee"] = lp_share * reserve_vee
-
-            vol24 = float(row.get("volume_24h_vee") or 0.0)
-            vol7 = float(row.get("volume_7d_vee") or 0.0)
-
-            if lp_share > 0 and (vol24 > 0 or vol7 > 0) and LP_FEE_RATE > 0:
-                row["lp_earn_vee_24h"] = vol24 * LP_FEE_RATE * lp_share
-                row["lp_earn_vee_7d"] = vol7 * LP_FEE_RATE * lp_share
-
-        except Exception:
-            continue
-
     return data
+
 
 
 @app.get("/api/history/{pair_address}")
