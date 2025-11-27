@@ -2,15 +2,111 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Zeeverse GEX – LP Optimizer</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>Zeeverse GEX — LP Optimizer</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: #020617;
+      color: #e5e7eb;
+      margin: 40px;
+    }
+    a.back-link {
+      color: #93c5fd;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    h1 {
+      color: #4ade80;
+      margin: 20px 0 10px;
+      font-size: 2rem;
+    }
+    .controls {
+      margin: 16px 0 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+    .controls label {
+      font-size: 0.95rem;
+    }
+    .controls input {
+      background-color: #020617;
+      border: 1px solid #334155;
+      color: #e5e7eb;
+      padding: 6px 8px;
+      border-radius: 4px;
+      width: 360px;
+      max-width: 100%;
+    }
+    .controls button {
+      background-color: #4ade80;
+      border: none;
+      color: #022c22;
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .controls button:hover {
+      background-color: #22c55e;
+    }
+    .muted {
+      font-size: 0.85rem;
+      color: #9ca3af;
+    }
+    #no-history {
+      margin: 8px 0 16px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      background-color: #020617;
+      border: 1px solid #1f2937;
+      font-size: 0.8rem;
+    }
+    th, td {
+      border: 1px solid #1f2937;
+      padding: 6px 8px;
+      text-align: right;
+      white-space: nowrap;
+    }
+    th:first-child,
+    td:first-child,
+    td:nth-child(2) {
+      text-align: left;
+    }
+    th {
+      background-color: #020617;
+      color: #facc15;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    tr:nth-child(even) td {
+      background-color: #020617;
+    }
+    tr:nth-child(odd) td {
+      background-color: #02091b;
+    }
+    .pos {
+      color: #4ade80;
+    }
+    .neg {
+      color: #f97373;
+    }
+    .pair-addr {
+      font-size: 0.7rem;
+      color: #9ca3af;
+    }
+  </style>
 </head>
 <body>
   <a href="index.html" class="back-link">← Back to market</a>
 
   <h1>LP Optimizer</h1>
 
-  <div class="optimizer-controls">
+  <div class="controls">
     <label>
       Wallet:
       <input
@@ -20,12 +116,13 @@
       />
     </label>
     <button id="load-btn">Load</button>
-    <span id="optimizer-status" class="optimizer-note"></span>
+    <span id="vee-price-label" class="muted"></span>
+    <span id="summary-label" class="muted"></span>
   </div>
 
-  <div id="optimizer-summary" class="optimizer-summary"></div>
+  <p id="no-history" class="muted">No LP history for this wallet.</p>
 
-  <table id="optimizer-table">
+  <table>
     <thead>
       <tr>
         <th>Item</th>
@@ -38,11 +135,10 @@
         <th>IL % annualized</th>
         <th>LP APR % (fees)</th>
         <th>Net effective %</th>
-        <th>Target weight</th>
-        <th>Recommendation</th>
+        <th>Target weight %</th>
       </tr>
     </thead>
-    <tbody id="optimizer-body"></tbody>
+    <tbody id="lp-body"></tbody>
   </table>
 
   <script src="optimizer.js"></script>
