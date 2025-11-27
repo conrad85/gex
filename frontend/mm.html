@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>MM Bot Log</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      #log-box {
+        white-space: pre-wrap;
+        background: #111;
+        color: #0f0;
+        padding: 20px;
+        border-radius: 8px;
+        font-family: monospace;
+        max-height: 90vh;
+        overflow-y: scroll;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>MM Bot – Live Log</h1>
+    <button id="refresh-btn">Refresh</button>
+    <div id="log-box">Loading...</div>
+
+    <script>
+      async function loadLog() {
+        try {
+          const res = await fetch("/api/mm/log");
+          const txt = await res.text();
+          document.getElementById("log-box").textContent = txt;
+        } catch (e) {
+          document.getElementById("log-box").textContent = "Error loading log.";
+        }
+      }
+
+      document.getElementById("refresh-btn").onclick = loadLog;
+
+      loadLog();
+      setInterval(loadLog, 15000);
+    </script>
+  </body>
+</html>

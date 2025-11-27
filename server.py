@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.responses import PlainTextResponse
 
 import os
 import time
@@ -700,6 +701,15 @@ def api_get_lp_il(wallet: str):
 def api_get_vee_price():
     price = get_vee_usd_price()
     return {"vee_usd": price}
+
+
+@app.get("/api/mm/log", response_class=PlainTextResponse)
+def get_mm_log():
+    try:
+        with open("mm_bot.log", "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return "Log file not found."
 
 
 if __name__ == "__main__":
