@@ -1,14 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-
+import psycopg2
 import os
 import time
+import json
 import traceback
 from datetime import datetime
-
-import psycopg2
 from dotenv import load_dotenv
+from web3 import Web3
+from web3.middleware import ExtraDataToPOAMiddleware
 
 load_dotenv()
 
@@ -30,8 +31,6 @@ async def global_exception_handler(request, exc):
     return JSONResponse(status_code=500, content={"detail": str(exc)})
 
 
-# ================== KONFIG ==================
-
 DB_PARAMS = {
     "host": os.getenv("DB_HOST"),
     "port": os.getenv("DB_PORT"),
@@ -40,27 +39,17 @@ DB_PARAMS = {
     "password": os.getenv("DB_PASS"),
 }
 
-# Fee % od wolumenu, które trafia do LP (np. 0.05 = 5%)
+# Szacowane fee od wolumenu, które trafia do LP (np. 5% -> 0.05)
 LP_FEE_RATE = float(os.getenv("LP_FEE_RATE", "0.05"))
 
-# Domyślna cena VEE w USD, gdyby w DB nic nie było
-VEE_USD_FALLBACK = float(os.getenv("VEE_USD", "0") or "0")
+# Opcjonalna cena VEE w USD (fallback)
+VEE_USD_PRICE = float(os.getenv("VEE_USD", "0") or "0")
 
-# Cache ceny VEE (żeby nie mielić DB co request)
-VEE_PRICE_CACHE = {
-    "ts": 0.0,
-    "price": VEE_USD_FALLBACK,
-}
-
-# Minimalna liczba dni pozycji, żeby liczyć IL annualized
-MIN_DAYS_FOR_IL_ANNUALIZED = float(os.getenv("MIN_DAYS_IL_ANNUALIZED", "3.0"))
+VEE_PRICE_CACHE = {"ts": 0.0, "price": VEE_USD_PRICE}
 
 
-def get_vee_usd_price() -> float:
-    """
-    Cena VEE w USD z tabeli vee_price_snapshots, z prostym cachem.
-    TTL cache: 240s. Jak coś pójdzie nie tak, trzymamy ostatnią znaną wartość.
-    """
+def get_vee_usd_price():
+    """Pobiera cenę VEE z DB (cache 4 min)."""
     now = time.time()
     if now - VEE_PRICE_CACHE["ts"] < 240 and VEE_PRICE_CACHE["price"] > 0:
         return VEE_PRICE_CACHE["price"]
@@ -74,25 +63,65 @@ def get_vee_usd_price() -> float:
         row = cur.fetchone()
         cur.close()
         conn.close()
-
         if row and row[0] is not None:
             VEE_PRICE_CACHE["price"] = float(row[0])
             VEE_PRICE_CACHE["ts"] = now
-    except Exception as e:
-        # Jak padnie, trudno – zostaje to, co było w cache / fallback
-        print("get_vee_usd_price ERROR:", repr(e))
+    except Exception:
+        pass
 
     return VEE_PRICE_CACHE["price"]
 
 
-# ================== MARKET SNAPSHOTS ==================
+# RPC (HTTP)
+RPC_DEFAULT = "https://ronin-mainnet.g.alchemy.com/v2/IJPvvQ6YdcbcF85OD8jNsjBrpGo3-Xh0"
+RPC_RAW = os.getenv("RONIN_RPC", RPC_DEFAULT)
+if RPC_RAW.startswith("wss://"):
+    RPC_HTTP = "https://" + RPC_RAW.removeprefix("wss://")
+else:
+    RPC_HTTP = RPC_RAW
+
+w3 = Web3(Web3.HTTPProvider(RPC_HTTP))
+w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
+
+ABI_ERC20 = json.loads(
+    """
+[
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "totalSupply",
+    "outputs": [
+      { "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      { "name": "owner", "type": "address" }
+    ],
+    "name": "balanceOf",
+    "outputs": [
+      { "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
+"""
+)
+
+LP_CACHE = {}
+LP_CACHE_TTL = 300  # seconds
+
+
+# ================== SNAPSHOTS ==================
 
 
 def query_latest():
     """
-    Ostatni snapshot każdej pary z gex_snapshots
-    + wolumen 24h / 7d z trades_ronin
-    + zmiany ceny i wolumenu.
+    Ostatni snapshot każdej pary + wolumeny i zmiany 24h/7d (trades_ronin).
     """
     conn = psycopg2.connect(**DB_PARAMS)
     cur = conn.cursor()
@@ -176,9 +205,9 @@ def query_latest():
         l.item_address,
         l.ts,
         COALESCE(v24.volume_24h_vee, 0)     AS volume_24h_vee,
-        COALESCE(v24.trades_24h, 0)         AS volume_24h_trades,
+        COALESCE(v24.trades_24h, 0)         AS trades_24h,
         COALESCE(v7.volume_7d_vee, 0)       AS volume_7d_vee,
-        COALESCE(v7.trades_7d, 0)           AS volume_7d_trades,
+        COALESCE(v7.trades_7d, 0)           AS trades_7d,
         p24.price_24h_ago,
         p7.price_7d_ago,
         COALESCE(
@@ -196,16 +225,14 @@ def query_latest():
         COALESCE(v24_prev.volume_24h_prev_vee, 0) AS volume_24h_prev_vee,
         COALESCE(v7_prev.volume_7d_prev_vee, 0)   AS volume_7d_prev_vee,
         CASE
-            WHEN v24_prev.volume_24h_prev_vee IS NULL
-                 OR v24_prev.volume_24h_prev_vee = 0 THEN NULL
-            ELSE ( (COALESCE(v24.volume_24h_vee, 0) - v24_prev.volume_24h_prev_vee)
-                   / v24_prev.volume_24h_prev_vee ) * 100
+            WHEN v24_prev.volume_24h_prev_vee IS NULL OR v24_prev.volume_24h_prev_vee = 0 THEN NULL
+            ELSE ((COALESCE(v24.volume_24h_vee, 0) - v24_prev.volume_24h_prev_vee)
+                  / v24_prev.volume_24h_prev_vee) * 100
         END AS volume_change_24h_pct,
         CASE
-            WHEN v7_prev.volume_7d_prev_vee IS NULL
-                 OR v7_prev.volume_7d_prev_vee = 0 THEN NULL
-            ELSE ( (COALESCE(v7.volume_7d_vee, 0) - v7_prev.volume_7d_prev_vee)
-                   / v7_prev.volume_7d_prev_vee ) * 100
+            WHEN v7_prev.volume_7d_prev_vee IS NULL OR v7_prev.volume_7d_prev_vee = 0 THEN NULL
+            ELSE ((COALESCE(v7.volume_7d_vee, 0) - v7_prev.volume_7d_prev_vee)
+                  / v7_prev.volume_7d_prev_vee) * 100
         END AS volume_change_7d_pct
     FROM latest    l
     LEFT JOIN vol24       v24      ON v24.pair_lower      = l.pair_lower
@@ -231,9 +258,9 @@ def query_latest():
         "item_address",
         "ts",
         "volume_24h_vee",
-        "volume_24h_trades",
+        "trades_24h",
         "volume_7d_vee",
-        "volume_7d_trades",
+        "trades_7d",
         "price_24h_ago",
         "price_7d_ago",
         "price_change_24h_pct",
@@ -244,41 +271,14 @@ def query_latest():
         "volume_change_7d_pct",
     ]
 
-    out = []
-    for row in rows:
-        d = dict(zip(columns, row))
-        # konwersja do float gdzie potrzeba
-        for k in [
-            "price_vee",
-            "reserve_vee",
-            "reserve_item",
-            "volume_24h_vee",
-            "volume_24h_trades",
-            "volume_7d_vee",
-            "volume_7d_trades",
-            "price_24h_ago",
-            "price_7d_ago",
-            "volume_24h_prev_vee",
-            "volume_7d_prev_vee",
-            "volume_change_24h_pct",
-            "volume_change_7d_pct",
-        ]:
-            if d.get(k) is not None:
-                d[k] = float(d[k])
-        if isinstance(d.get("ts"), datetime):
-            d["ts"] = d["ts"].isoformat()
-        out.append(d)
-
-    return out
+    return [dict(zip(columns, row)) for row in rows]
 
 
-# ================== LP SNAPSHOTS ==================
+# ================== LP HELPERS ==================
 
 
 def query_lp_latest(wallet: str):
-    """
-    Ostatni snapshot z lp_snapshots dla każdej pary.
-    """
+    """Ostatni snapshot z lp_snapshots dla każdej pary danego walleta."""
     conn = psycopg2.connect(**DB_PARAMS)
     cur = conn.cursor()
     cur.execute(
@@ -326,7 +326,6 @@ def query_lp_latest(wallet: str):
         "lp_earn_vee_7d",
         "lp_apr",
     ]
-
     result = []
     for r in rows:
         d = dict(zip(cols, r))
@@ -344,7 +343,7 @@ def query_lp_latest(wallet: str):
             "lp_earn_vee_7d",
             "lp_apr",
         ]:
-            if d.get(k) is not None:
+            if k in d and d[k] is not None:
                 d[k] = float(d[k])
         if isinstance(d.get("ts"), datetime):
             d["ts"] = d["ts"].isoformat()
@@ -354,9 +353,7 @@ def query_lp_latest(wallet: str):
 
 
 def query_lp_history(wallet: str):
-    """
-    Pełna historia LP dla walleta (pod liczenie IL).
-    """
+    """Pełna historia LP dla walleta – pod IL."""
     conn = psycopg2.connect(**DB_PARAMS)
     cur = conn.cursor()
     cur.execute(
@@ -388,29 +385,22 @@ def query_lp_history(wallet: str):
         "user_item",
         "lp_apr",
     ]
-
     out = []
     for r in rows:
         d = dict(zip(cols, r))
         for k in ["price_vee", "user_vee", "user_item", "lp_apr"]:
-            if d.get(k) is not None:
+            if k in d and d[k] is not None:
                 d[k] = float(d[k])
-        # ts zostaje datetime
         out.append(d)
-
     return out
 
 
 def calc_il(entry_vee, entry_item, cur_vee, cur_item, price_vee):
     """
-    IL w VEE:
-    value_hodl = entry_vee + entry_item * price_now
-    value_lp   = cur_vee   + cur_item   * price_now
-    il_vee     = value_lp - value_hodl
+    IL liczony w VEE:
+    - value_hodl = (entry_vee + entry_item * price_now)
+    - value_lp   = (cur_vee   + cur_item   * price_now)
     """
-    if price_vee is None:
-        return 0.0, 0.0, 0.0, 0.0
-
     entry_vee = float(entry_vee or 0.0)
     entry_item = float(entry_item or 0.0)
     cur_vee = float(cur_vee or 0.0)
@@ -430,8 +420,8 @@ def calc_il(entry_vee, entry_item, cur_vee, cur_item, price_vee):
 
 def compute_lp_il_for_wallet(wallet: str):
     """
-    IL per para + prosty scoring "net_effective_pct"
-    (lp_apr + IL annualized, jeśli ma sens).
+    Zwraca IL per para + prosty scoring "opłacalności":
+    net_effective_pct = lp_apr (z ostatniego snapshotu) + IL annualized.
     """
     history = query_lp_history(wallet)
     if not history:
@@ -442,6 +432,7 @@ def compute_lp_il_for_wallet(wallet: str):
         key = row["pair_address"].lower()
         per_pair.setdefault(key, []).append(row)
 
+    vee_usd = get_vee_usd_price()
     results = []
 
     for key, rows in per_pair.items():
@@ -462,22 +453,17 @@ def compute_lp_il_for_wallet(wallet: str):
             entry_vee, entry_item, cur_vee, cur_item, price_now
         )
 
-        # ile dni w pozycji
         try:
             t0 = entry["ts"]
             t1 = current["ts"]
-            delta_days = max((t1 - t0).total_seconds() / 86400.0, 0.0)
+            # jeśli ts są datetime -> timedelta; jeśli string -> różnica = 0
+            delta_seconds = (t1 - t0).total_seconds() if hasattr(t1, "total_seconds") else 0.0
+            delta_days = max(delta_seconds / 86400.0, 0.0)
         except Exception:
             delta_days = 0.0
 
-        # annualizacja tylko jeśli pozycja jest starsza niż X dni
-        if (
-            delta_days <= 0
-            or il_pct is None
-            or delta_days < MIN_DAYS_FOR_IL_ANNUALIZED
-        ):
-            il_annualized_pct = None
-        else:
+        il_annualized_pct = None
+        if delta_days > 0 and il_pct is not None:
             il_annualized_pct = il_pct * (365.0 / max(delta_days, 1e-6))
 
         lp_apr = current.get("lp_apr")
@@ -490,7 +476,6 @@ def compute_lp_il_for_wallet(wallet: str):
         elif lp_apr is not None:
             net_effective_pct = lp_apr
 
-        vee_usd = get_vee_usd_price()
         il_usd = None
         value_hodl_usd = None
         value_lp_usd = None
@@ -503,12 +488,8 @@ def compute_lp_il_for_wallet(wallet: str):
             {
                 "pair_address": current["pair_address"],
                 "item_name": current.get("item_name"),
-                "entry_ts": entry["ts"].isoformat()
-                if isinstance(entry["ts"], datetime)
-                else entry["ts"],
-                "current_ts": current["ts"].isoformat()
-                if isinstance(current["ts"], datetime)
-                else current["ts"],
+                "entry_ts": entry["ts"],
+                "current_ts": current["ts"],
                 "days_in_position": delta_days,
                 "entry_user_vee": entry_vee,
                 "entry_user_item": entry_item,
@@ -554,87 +535,21 @@ def compute_lp_il_for_wallet(wallet: str):
 
 
 @app.get("/api/market")
-def get_latest_snapshots_with_volume():
-    """
-    Lista wszystkich par z ceną + volume (bez LP).
-    """
+def api_market():
     return query_latest()
 
 
 @app.get("/api/market/{wallet}")
-def get_latest_snapshots_with_volume_and_lp(wallet: str):
+def api_market_wallet(wallet: str):
     """
-    Market + LP dla portfela.
-    LP bierzemy z tabeli lp_cache (single wallet), wallet w URL
-    jest tu tylko po to, żeby front miał ładne /api/market/{wallet}.
+    Market + LP (dla walleta - z cache lp_cache jeśli używasz).
+    Tutaj pozostawiamy tylko dane rynkowe (LP per wallet bierze optimizer z /api/lp/{wallet}).
     """
-    data = query_latest()
-
-    conn = psycopg2.connect(**DB_PARAMS)
-    cur = conn.cursor()
-    cur.execute(
-        """
-        SELECT
-            LOWER(pair_address) AS pair_lower,
-            lp_balance,
-            lp_share,
-            user_vee,
-            user_item
-        FROM lp_cache
-        """
-    )
-    lp_rows = cur.fetchall()
-    cur.close()
-    conn.close()
-
-    lp_by_pair = {}
-    for pair_lower, lp_balance, lp_share, user_vee, user_item in lp_rows:
-        lp_by_pair[pair_lower] = {
-            "lp_balance": float(lp_balance or 0),
-            "lp_share": float(lp_share or 0),
-            "user_vee": float(user_vee or 0),
-            "user_item": float(user_item or 0),
-        }
-
-    for row in data:
-        pair_lower = row["pair_address"].lower()
-
-        row["lp_balance"] = 0.0
-        row["lp_share"] = 0.0
-        row["user_item"] = 0.0
-        row["user_vee"] = 0.0
-        row["lp_earn_vee_24h"] = 0.0
-        row["lp_earn_vee_7d"] = 0.0
-
-        lp_info = lp_by_pair.get(pair_lower)
-        if not lp_info:
-            continue
-
-        lp_share = lp_info["lp_share"]
-
-        row["lp_balance"] = lp_info["lp_balance"]
-        row["lp_share"] = lp_share
-        row["user_item"] = lp_info["user_item"]
-        row["user_vee"] = lp_info["user_vee"]
-
-        vol24 = float(row.get("volume_24h_vee") or 0.0)
-        vol7 = float(row.get("volume_7d_vee") or 0.0)
-
-        if lp_share > 0 and LP_FEE_RATE > 0:
-            row["lp_earn_vee_24h"] = vol24 * LP_FEE_RATE * lp_share
-            row["lp_earn_vee_7d"] = vol7 * LP_FEE_RATE * lp_share
-
-    return data
-
-
-@app.get("/api/vee_price")
-def api_get_vee_price():
-    price = get_vee_usd_price()
-    return {"vee_usd": price}
+    return query_latest()
 
 
 @app.get("/api/history/{pair_address}")
-def get_pair_history(pair_address: str):
+def api_pair_history(pair_address: str):
     """
     Historia ceny, rezerw i dziennego wolumenu dla pary.
     """
@@ -687,22 +602,24 @@ def get_pair_history(pair_address: str):
 
 
 @app.get("/api/lp/{wallet}")
-def api_get_lp_latest(wallet: str):
+def api_lp_latest(wallet: str):
     return query_lp_latest(wallet)
 
 
 @app.get("/api/lp/{wallet}/il")
-def api_get_lp_il(wallet: str):
-    results = compute_lp_il_for_wallet(wallet)
+def api_lp_il(wallet: str):
+    wallet_clean = wallet.strip()
+    results = compute_lp_il_for_wallet(wallet_clean)
     vee_usd = get_vee_usd_price()
     return {
-        "wallet": wallet,
+        "wallet": wallet_clean,
         "vee_usd_price": vee_usd,
         "pairs": results,
     }
 
+
 @app.get("/api/vee_price")
-def get_vee_price():
+def api_vee_price():
     return {"vee_usd": get_vee_usd_price()}
 
 
