@@ -212,6 +212,12 @@ async function loadVeePrice() {
   }
 }
 
+async function loadMarket() {
+    const r = await fetch('/api/mm/market');
+    const j = await r.json();
+    return j.pairs;
+}
+
 
 // ===== FILTER + SORT =====
 function applyFilterAndSort() {

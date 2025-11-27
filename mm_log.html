@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>MM Bot – Live Log</title>
+    <style>
+        body { background: #0d0f17; color: #00ff99; font-family: monospace; }
+        .box { background: #11131e; padding: 20px; margin-top: 20px; border-radius: 6px; }
+        button { padding: 8px 12px; }
+        pre { white-space: pre-wrap; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<h1>MM Bot – Live Log</h1>
+
+<button onclick="loadLog()">Refresh Log</button>
+<div class="box">
+    <pre id="log">Loading...</pre>
+</div>
+
+<h1>Full Market Scan</h1>
+<button onclick="loadScan()">Refresh Scan</button>
+<div class="box">
+    <pre id="scan">Loading...</pre>
+</div>
+
+<script>
+function loadLog() {
+    fetch('/mm_log')
+        .then(r => r.text())
+        .then(t => document.getElementById('log').textContent = t)
+        .catch(_ => document.getElementById('log').textContent = "Error loading log.");
+}
+
+function loadScan() {
+    fetch('/api/mm/market')
+        .then(r => r.json())
+        .then(t => {
+            let out = "";
+            t.pairs.forEach(p => {
+                out += `${p.item_name} | APR: ${p.lp_apr} | NET: ${p.net_effective_pct} | vol24 ${p.vol24} | reserve ${p.reserve_vee}\n`;
+            });
+            document.getElementById('scan').textContent = out;
+        })
+        .catch(_ => document.getElementById('scan').textContent = "Error loading scan.");
+}
+
+loadLog();
+loadScan();
+</script>
+</body>
+</html>

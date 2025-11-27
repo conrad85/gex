@@ -710,6 +710,12 @@ def get_mm_log():
             return f.read()
     except FileNotFoundError:
         return "Log file not found."
+    
+@app.get("/api/mm/market")
+def mm_market_scan():
+    from mm_market import fetch_market_data
+    return {"pairs": fetch_market_data()}
+
 
 
 if __name__ == "__main__":
