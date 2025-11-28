@@ -94,6 +94,8 @@ def query_latest():
     Ostatni snapshot każdej pary z gex_snapshots
     + wolumen 24h / 7d z trades_ronin
     + zmiany ceny i wolumenu.
+    UWAGA: w trades_ronin trzymamy połowę volume (średnia z in/out),
+    więc tutaj mnożymy wszystkie wolumeny *2, żeby zrównać się z danymi z GEX.
     """
     conn = psycopg2.connect(**DB_PARAMS)
     cur = conn.cursor()
@@ -262,6 +264,17 @@ def query_latest():
         ]:
             if d.get(k) is not None:
                 d[k] = float(d[k])
+
+        # tu *2, bo w DB jest połowa faktycznego volume
+        for k in [
+            "volume_24h_vee",
+            "volume_7d_vee",
+            "volume_24h_prev_vee",
+            "volume_7d_prev_vee",
+        ]:
+            if d.get(k) is not None:
+                d[k] = d[k] * 2.0
+
         if isinstance(d.get("ts"), datetime):
             d["ts"] = d["ts"].isoformat()
         out.append(d)
@@ -628,6 +641,7 @@ def get_latest_snapshots_with_volume_and_lp(wallet: str):
 def get_pair_history(pair_address: str):
     """
     Historia ceny, rezerw i dziennego wolumenu dla pary.
+    Volume per day mnożymy *2, bo w trades_ronin jest połowa.
     """
     conn = psycopg2.connect(**DB_PARAMS)
     cur = conn.cursor()
@@ -666,7 +680,7 @@ def get_pair_history(pair_address: str):
     volumes = [
         {
             "day": row[0].date().isoformat(),
-            "volume_vee": float(row[1]) if row[1] is not None else 0.0,
+            "volume_vee": float(row[1]) * 2.0 if row[1] is not None else 0.0,
         }
         for row in vol_rows
     ]
@@ -706,12 +720,12 @@ def get_mm_log():
             return f.read()
     except FileNotFoundError:
         return "Log file not found."
-    
+
+
 @app.get("/api/mm/market")
 def mm_market_scan():
     from mm_market import fetch_market_data
     return {"pairs": fetch_market_data()}
-
 
 
 if __name__ == "__main__":
