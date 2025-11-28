@@ -1,0 +1,684 @@
+{
+  "stage_front": "https://web.stage.zee-verse.com/",
+  "stage_api": "https://api.stage.zee-verse.com",
+  "prod_api": "https://api.zee-verse.com",
+  "found_paths": [
+    "//api",
+    "/ambassador",
+    "/ambassador/claims",
+    "/ambassador/earning_rates",
+    "/ambassador/leaderboard",
+    "/ambassador/network",
+    "/ambassador/potential",
+    "/ambassador/rewards",
+    "/ambassador/stakes",
+    "/ambassador/transactions/claims",
+    "/ambassador/transactions/stakes",
+    "/ambassador/vested",
+    "/ambassador/vested/",
+    "/api/human",
+    "/app/account",
+    "/app/ambassadors",
+    "/app/collectors",
+    "/app/collectors/",
+    "/app/id1327268470",
+    "/app/lands",
+    "/app/lands/",
+    "/app/lands/generator",
+    "/app/lands/my-lands",
+    "/app/p2a",
+    "/app/premium",
+    "/app/stake",
+    "/docs/app/api-reference/functions/use-search-params",
+    "/gex/pools",
+    "/gex/pools/",
+    "/gex/route",
+    "/gex/swap/args",
+    "/leaderboards/ambassador",
+    "/offchain-gex/items/",
+    "/offchain-gex/liquidity/add",
+    "/offchain-gex/liquidity/positions",
+    "/offchain-gex/liquidity/positions/",
+    "/offchain-gex/liquidity/quote/add",
+    "/offchain-gex/liquidity/quote/remove",
+    "/offchain-gex/liquidity/remove",
+    "/offchain-gex/pools",
+    "/offchain-gex/swap/items-for-vee",
+    "/offchain-gex/swap/vee-for-items",
+    "/stake",
+    "/us/app/metamask/id1438144202",
+    "/us/app/ronin-wallet/id1592675001"
+  ],
+  "tested": [
+    {
+      "url": "https://api.stage.zee-verse.com/api",
+      "path": "//api",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/ambassador",
+      "path": "/ambassador",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/ambassador/claims",
+      "path": "/ambassador/claims",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/ambassador/earning_rates",
+      "path": "/ambassador/earning_rates",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/ambassador/leaderboard",
+      "path": "/ambassador/leaderboard",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/ambassador/network",
+      "path": "/ambassador/network",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/ambassador/potential",
+      "path": "/ambassador/potential",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/ambassador/rewards",
+      "path": "/ambassador/rewards",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/ambassador/stakes",
+      "path": "/ambassador/stakes",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/ambassador/transactions/claims",
+      "path": "/ambassador/transactions/claims",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/ambassador/transactions/stakes",
+      "path": "/ambassador/transactions/stakes",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/ambassador/vested",
+      "path": "/ambassador/vested",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/ambassador/vested/",
+      "path": "/ambassador/vested/",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/api/human",
+      "path": "/api/human",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/app/account",
+      "path": "/app/account",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/app/ambassadors",
+      "path": "/app/ambassadors",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/app/collectors",
+      "path": "/app/collectors",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/app/collectors/",
+      "path": "/app/collectors/",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/app/id1327268470",
+      "path": "/app/id1327268470",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/app/lands",
+      "path": "/app/lands",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/app/lands/",
+      "path": "/app/lands/",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/app/lands/generator",
+      "path": "/app/lands/generator",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/app/lands/my-lands",
+      "path": "/app/lands/my-lands",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/app/p2a",
+      "path": "/app/p2a",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/app/premium",
+      "path": "/app/premium",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/app/stake",
+      "path": "/app/stake",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/docs/app/api-reference/functions/use-search-params",
+      "path": "/docs/app/api-reference/functions/use-search-params",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/gex/pools",
+      "path": "/gex/pools",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/gex/pools/",
+      "path": "/gex/pools/",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/gex/route",
+      "path": "/gex/route",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/gex/swap/args",
+      "path": "/gex/swap/args",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/leaderboards/ambassador",
+      "path": "/leaderboards/ambassador",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/offchain-gex/items/",
+      "path": "/offchain-gex/items/",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/offchain-gex/liquidity/add",
+      "path": "/offchain-gex/liquidity/add",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/offchain-gex/liquidity/positions",
+      "path": "/offchain-gex/liquidity/positions",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/offchain-gex/liquidity/positions/",
+      "path": "/offchain-gex/liquidity/positions/",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/offchain-gex/liquidity/quote/add",
+      "path": "/offchain-gex/liquidity/quote/add",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/offchain-gex/liquidity/quote/remove",
+      "path": "/offchain-gex/liquidity/quote/remove",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/offchain-gex/liquidity/remove",
+      "path": "/offchain-gex/liquidity/remove",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/offchain-gex/pools",
+      "path": "/offchain-gex/pools",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/offchain-gex/swap/items-for-vee",
+      "path": "/offchain-gex/swap/items-for-vee",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/offchain-gex/swap/vee-for-items",
+      "path": "/offchain-gex/swap/vee-for-items",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/stake",
+      "path": "/stake",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/us/app/metamask/id1438144202",
+      "path": "/us/app/metamask/id1438144202",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.stage.zee-verse.com/us/app/ronin-wallet/id1592675001",
+      "path": "/us/app/ronin-wallet/id1592675001",
+      "base": "https://api.stage.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/api",
+      "path": "//api",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/ambassador",
+      "path": "/ambassador",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/ambassador/claims",
+      "path": "/ambassador/claims",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/ambassador/earning_rates",
+      "path": "/ambassador/earning_rates",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/ambassador/leaderboard",
+      "path": "/ambassador/leaderboard",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/ambassador/network",
+      "path": "/ambassador/network",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/ambassador/potential",
+      "path": "/ambassador/potential",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/ambassador/rewards",
+      "path": "/ambassador/rewards",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/ambassador/stakes",
+      "path": "/ambassador/stakes",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/ambassador/transactions/claims",
+      "path": "/ambassador/transactions/claims",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/ambassador/transactions/stakes",
+      "path": "/ambassador/transactions/stakes",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/ambassador/vested",
+      "path": "/ambassador/vested",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/ambassador/vested/",
+      "path": "/ambassador/vested/",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/api/human",
+      "path": "/api/human",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/app/account",
+      "path": "/app/account",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/app/ambassadors",
+      "path": "/app/ambassadors",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/app/collectors",
+      "path": "/app/collectors",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/app/collectors/",
+      "path": "/app/collectors/",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/app/id1327268470",
+      "path": "/app/id1327268470",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/app/lands",
+      "path": "/app/lands",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/app/lands/",
+      "path": "/app/lands/",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/app/lands/generator",
+      "path": "/app/lands/generator",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/app/lands/my-lands",
+      "path": "/app/lands/my-lands",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/app/p2a",
+      "path": "/app/p2a",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/app/premium",
+      "path": "/app/premium",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/app/stake",
+      "path": "/app/stake",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/docs/app/api-reference/functions/use-search-params",
+      "path": "/docs/app/api-reference/functions/use-search-params",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/gex/pools",
+      "path": "/gex/pools",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/gex/pools/",
+      "path": "/gex/pools/",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/gex/route",
+      "path": "/gex/route",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/gex/swap/args",
+      "path": "/gex/swap/args",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/leaderboards/ambassador",
+      "path": "/leaderboards/ambassador",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/offchain-gex/items/",
+      "path": "/offchain-gex/items/",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/offchain-gex/liquidity/add",
+      "path": "/offchain-gex/liquidity/add",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/offchain-gex/liquidity/positions",
+      "path": "/offchain-gex/liquidity/positions",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/offchain-gex/liquidity/positions/",
+      "path": "/offchain-gex/liquidity/positions/",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/offchain-gex/liquidity/quote/add",
+      "path": "/offchain-gex/liquidity/quote/add",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/offchain-gex/liquidity/quote/remove",
+      "path": "/offchain-gex/liquidity/quote/remove",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/offchain-gex/liquidity/remove",
+      "path": "/offchain-gex/liquidity/remove",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/offchain-gex/pools",
+      "path": "/offchain-gex/pools",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/offchain-gex/swap/items-for-vee",
+      "path": "/offchain-gex/swap/items-for-vee",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/offchain-gex/swap/vee-for-items",
+      "path": "/offchain-gex/swap/vee-for-items",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/stake",
+      "path": "/stake",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/us/app/metamask/id1438144202",
+      "path": "/us/app/metamask/id1438144202",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    },
+    {
+      "url": "https://api.zee-verse.com/us/app/ronin-wallet/id1592675001",
+      "path": "/us/app/ronin-wallet/id1592675001",
+      "base": "https://api.zee-verse.com",
+      "status": 404,
+      "active": false
+    }
+  ]
+}

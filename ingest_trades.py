@@ -3,6 +3,7 @@ import time
 import json
 import traceback
 from decimal import Decimal
+from datetime import datetime, timezone
 
 import psycopg2
 from psycopg2.extras import execute_batch
@@ -214,7 +215,6 @@ def save_last_block(conn, last_block):
         """,
         (int(last_block),),
     )
-    conn.commit()
     cur.close()
 
 
@@ -407,10 +407,7 @@ def ingest():
                         block_number,
                         tx_hash,
                         log_index,
-                        time.strftime(
-                            "%Y-%m-%d %H:%M:%S%z",
-                            time.localtime(ts),
-                        ),
+                        datetime.fromtimestamp(ts, timezone.utc),
                         str(vee_amount),
                     )
                 )
@@ -421,8 +418,8 @@ def ingest():
                 traceback.print_exc()
                 continue
 
-        if rows_to_insert:
-            try:
+        try:
+            if rows_to_insert:
                 execute_batch(
                     cur,
                     """
@@ -439,15 +436,19 @@ def ingest():
                     """,
                     rows_to_insert,
                 )
-                conn.commit()
                 total_inserted += cur.rowcount
-            except Exception as e:
-                print(f"[INGEST] ERROR during insert batch: {e}")
-                conn.rollback()
+
+            # chunk przetworzony (nawet jeśli bez logów) -> przesuwamy cursor
+            save_last_block(conn, current_to)
+            conn.commit()
+        except Exception as e:
+            print(f"[INGEST] ERROR during insert/update batch: {e}")
+            conn.rollback()
+            cur.close()
+            conn.close()
+            return
 
         current_from = current_to + 1
-
-    save_last_block(conn, latest_block)
 
     # zwolnij advisory lock
     cur = conn.cursor()

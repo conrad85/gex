@@ -182,18 +182,14 @@ def query_latest():
         COALESCE(v7.trades_7d, 0)           AS volume_7d_trades,
         p24.price_24h_ago,
         p7.price_7d_ago,
-        COALESCE(
-            CASE
-                WHEN p24.price_24h_ago IS NULL OR p24.price_24h_ago = 0 THEN NULL
-                ELSE ((l.price_vee - p24.price_24h_ago) / p24.price_24h_ago) * 100
-            END, 0
-        ) AS price_change_24h_pct,
-        COALESCE(
-            CASE
-                WHEN p7.price_7d_ago IS NULL OR p7.price_7d_ago = 0 THEN NULL
-                ELSE ((l.price_vee - p7.price_7d_ago) / p7.price_7d_ago) * 100
-            END, 0
-        ) AS price_change_7d_pct,
+        CASE
+            WHEN p24.price_24h_ago IS NULL OR p24.price_24h_ago = 0 THEN NULL
+            ELSE ((l.price_vee - p24.price_24h_ago) / p24.price_24h_ago) * 100
+        END AS price_change_24h_pct,
+        CASE
+            WHEN p7.price_7d_ago IS NULL OR p7.price_7d_ago = 0 THEN NULL
+            ELSE ((l.price_vee - p7.price_7d_ago) / p7.price_7d_ago) * 100
+        END AS price_change_7d_pct,
         COALESCE(v24_prev.volume_24h_prev_vee, 0) AS volume_24h_prev_vee,
         COALESCE(v7_prev.volume_7d_prev_vee, 0)   AS volume_7d_prev_vee,
         CASE
