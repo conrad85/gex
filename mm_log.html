@@ -7,7 +7,7 @@
         body { background: #0d0f17; color: #00ff99; font-family: monospace; }
         .box { background: #11131e; padding: 20px; margin-top: 20px; border-radius: 6px; }
         button { padding: 8px 12px; }
-        pre { white-space: pre-wrap; font-size: 14px; }
+        pre { white-space: pre-wrap; font-size: 14px; margin: 0; }
     </style>
 </head>
 <body>
@@ -26,13 +26,37 @@
 </div>
 
 <script>
+// ===== USTAWIENIA =====
+const MAX_LINES = 1000;
+const AUTO_REFRESH_MS = 5000;
+
+// ===== LOGI =====
 function loadLog() {
     fetch('/mm_log')
         .then(r => r.text())
-        .then(t => document.getElementById('log').textContent = t)
-        .catch(_ => document.getElementById('log').textContent = "Error loading log.");
+        .then(t => {
+            let lines = t.split("\n").filter(x => x.trim().length > 0);
+
+            // Przycinanie logu
+            if (lines.length > MAX_LINES) {
+                lines = lines.slice(-MAX_LINES);
+            }
+
+            // Najnowsze na górze
+            lines.reverse();
+
+            const logBox = document.getElementById('log');
+            logBox.textContent = lines.join("\n");
+
+            // Zawsze scroll na górę
+            logBox.parentElement.scrollTop = 0;
+        })
+        .catch(_ => {
+            document.getElementById('log').textContent = "Error loading log.";
+        });
 }
 
+// ===== MARKET SCAN =====
 function loadScan() {
     fetch('/api/mm/market')
         .then(r => r.json())
@@ -43,11 +67,18 @@ function loadScan() {
             });
             document.getElementById('scan').textContent = out;
         })
-        .catch(_ => document.getElementById('scan').textContent = "Error loading scan.");
+        .catch(_ => {
+            document.getElementById('scan').textContent = "Error loading scan.";
+        });
 }
 
+// ===== AUTOMATIC REFRESH =====
+setInterval(loadLog, AUTO_REFRESH_MS);
+
+// Initial load
 loadLog();
 loadScan();
 </script>
+
 </body>
 </html>
