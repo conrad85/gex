@@ -5,6 +5,30 @@
     <meta charset="utf-8" />
     <link rel="stylesheet" href="styles.css" />
     <style>
+      body {
+        background: #05060a;
+        color: #eee;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        padding: 20px;
+      }
+
+      h1 {
+        color: #0f0;
+        font-family: monospace;
+      }
+
+      #controls {
+        margin-bottom: 10px;
+      }
+
+      #controls select,
+      #controls button {
+        margin-right: 8px;
+        padding: 6px 10px;
+        font-size: 14px;
+      }
+
       #log-box {
         white-space: pre-wrap;
         background: #111;
@@ -14,29 +38,148 @@
         font-family: monospace;
         max-height: 90vh;
         overflow-y: scroll;
+        border: 1px solid #222;
+      }
+
+      .log-line {
+        margin: 0;
+      }
+
+      .log-line .ts {
+        color: #888;
+      }
+
+      .log-line.info {
+        color: #0f0;
+      }
+
+      .log-line.warn {
+        color: #ffea00;
+      }
+
+      .log-line.error {
+        color: #ff5555;
+      }
+
+      .log-line.other {
+        color: #cccccc;
       }
     </style>
   </head>
   <body>
     <h1>MM Bot – Live Log</h1>
-    <button id="refresh-btn">Refresh</button>
+
+    <div id="controls">
+      <button id="refresh-btn">Refresh</button>
+
+      <label>
+        Poziom:
+        <select id="level-filter">
+          <option value="all">ALL</option>
+          <option value="warn">WARN + ERROR</option>
+          <option value="error">ERROR only</option>
+        </select>
+      </label>
+    </div>
+
     <div id="log-box">Loading...</div>
 
     <script>
+      const MAX_LINES = 1000;
+      const AUTO_REFRESH_MS = 5000;
+      let lastRawText = "";
+      let lastLines = [];
+
+      function escapeHtml(str) {
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function detectLevel(line) {
+        if (line.includes("ERROR")) return "error";
+        if (line.includes("WARNING") || line.includes("WARN")) return "warn";
+        if (line.includes("INFO")) return "info";
+        return "other";
+      }
+
+      function splitTimestamp(line) {
+        // typowy format:
+        // 2025-11-27 17:22:28,869 | INFO | ...
+        const m = line.match(
+          /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\s*\|\s*([A-Z]+)\s*\|\s*(.*)$/
+        );
+        if (!m) {
+          return { ts: "", rest: line };
+        }
+        return { ts: m[1] + " | " + m[2] + " |", rest: m[3] };
+      }
+
+      function renderLines() {
+        const box = document.getElementById("log-box");
+        const filter = document.getElementById("level-filter").value;
+
+        let html = "";
+        for (const line of lastLines) {
+          const level = detectLevel(line);
+
+          if (filter === "error" && level !== "error") continue;
+          if (filter === "warn" && !(level === "warn" || level === "error"))
+            continue;
+
+          const { ts, rest } = splitTimestamp(line);
+
+          html += `<div class="log-line ${level}">`;
+          if (ts) {
+            html += `<span class="ts">${escapeHtml(ts)}</span> ${escapeHtml(
+              rest
+            )}`;
+          } else {
+            html += escapeHtml(line);
+          }
+          html += `</div>\n`;
+        }
+
+        if (!html) {
+          html = '<div class="log-line other">[no log lines matching filter]</div>';
+        }
+
+        box.innerHTML = html;
+        box.scrollTop = 0;
+      }
+
       async function loadLog() {
         try {
           const res = await fetch("/api/mm/log");
           const txt = await res.text();
-          document.getElementById("log-box").textContent = txt;
+
+          lastRawText = txt;
+          let lines = txt
+            .split("\n")
+            .map((x) => x.replace(/\r$/, ""))
+            .filter((x) => x.trim().length > 0);
+
+          if (lines.length > MAX_LINES) {
+            lines = lines.slice(-MAX_LINES);
+          }
+
+          lines.reverse();
+          lastLines = lines;
+
+          renderLines();
         } catch (e) {
           document.getElementById("log-box").textContent = "Error loading log.";
         }
       }
 
       document.getElementById("refresh-btn").onclick = loadLog;
+      document.getElementById("level-filter").onchange = renderLines;
 
       loadLog();
-      setInterval(loadLog, 15000);
+      setInterval(loadLog, AUTO_REFRESH_MS);
     </script>
   </body>
 </html>
