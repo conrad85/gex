@@ -1,4 +1,4 @@
-EX – Zeeverse Market Monitor (Ronin)
+GEX – Zeeverse Market Monitor (Ronin)
 
 Monitor rynku Zeeverse GEX (on-chain Ronin):
 
