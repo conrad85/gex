@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Zeeverse GEX - All Items</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <h1>Zeeverse GEX - All Items</h1>
+  <p><a href="optimizer.html" class="back-link">Open LP Optimizer</a></p>
+  <a href="mm.html" class="menu-link">MM Bot</a>
+<div id="veePrice" style="color:#4ade80; margin-bottom:15px; font-size:18px;">
+  VEE: loading...
+</div>
+
+
+  <div class="top-bar">
+    <input
+      id="search"
+      placeholder="Filter by item name..."
+      class="search-input"
+    />
+
+    <label class="lp-toggle">
+      <input type="checkbox" id="hide-zero-lp" />
+      Hide zero LP positions
+    </label>
+  </div>
+
+  <div id="row-count" class="row-count"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th data-key="item_name">Item</th>
+        <th data-key="price_vee">Price (VEE)</th>
+        <th data-key="price_change_24h_pct">Price Δ 24h %</th>
+        <th data-key="price_change_7d_pct">Price Δ 7d %</th>
+        <th data-key="volume_24h_vee">Volume 24h (VEE)</th>
+        <th data-key="volume_change_24h_pct">Vol Δ 24h %</th>
+        <th data-key="volume_7d_vee">Volume 7d (VEE)</th>
+        <th data-key="volume_change_7d_pct">Vol Δ 7d %</th>
+        <th data-key="lp_share">My LP %</th>
+        <th data-key="lp_earn_vee_24h">My fees 24h (VEE)</th>
+        <th data-key="lp_earn_vee_7d">My fees 7d (VEE)</th>
+        <th data-key="lp_apr">My LP APR (est)</th>
+        <th data-key="ts">Updated</th>
+      </tr>
+    </thead>
+    <tbody id="market-body"></tbody>
+  </table>
+
+  <h2 class="lp-summary-title">My LP summary</h2>
+  <div id="lp-summary"></div>
+
+  <div id="last-updated" class="last-updated"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
